@@ -1,4 +1,4 @@
-use rattler_solve::PackageIdentifier;
+use rattler_conda_types::RepoDataRecord;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
@@ -12,5 +12,5 @@ pub struct SolveEnvironment {
 
 #[derive(Serialize)]
 pub struct SolveEnvironmentOk {
-    pub packages: Vec<PackageIdentifier>,
+    pub packages: Vec<RepoDataRecord>,
 }
