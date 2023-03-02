@@ -409,6 +409,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "dashmap"
+version = "5.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "907076dfda823b0b36d2a1bb5f90c96660a5bbcd7729e10727f07858f22c4edc"
+dependencies = [
+ "cfg-if",
+ "hashbrown",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1225,7 +1238,9 @@ name = "rattler-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-compression",
  "axum",
+ "dashmap",
  "futures",
  "rattler_conda_types",
  "rattler_repodata_gateway",
@@ -1234,11 +1249,13 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]
 name = "rattler_conda_types"
 version = "0.1.0"
+source = "git+https://github.com/aochagavia/rattler.git?branch=libsolv-reuse-input#22344b0d543ad759e36d6d15af570bbd486d5a94"
 dependencies = [
  "fxhash",
  "hex",
@@ -1264,6 +1281,7 @@ dependencies = [
 [[package]]
 name = "rattler_digest"
 version = "0.1.0"
+source = "git+https://github.com/aochagavia/rattler.git?branch=libsolv-reuse-input#22344b0d543ad759e36d6d15af570bbd486d5a94"
 dependencies = [
  "digest",
  "hex",
@@ -1274,6 +1292,7 @@ dependencies = [
 [[package]]
 name = "rattler_repodata_gateway"
 version = "0.1.0"
+source = "git+https://github.com/aochagavia/rattler.git?branch=libsolv-reuse-input#22344b0d543ad759e36d6d15af570bbd486d5a94"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1302,6 +1321,7 @@ dependencies = [
 [[package]]
 name = "rattler_solve"
 version = "0.1.0"
+source = "git+https://github.com/aochagavia/rattler.git?branch=libsolv-reuse-input#22344b0d543ad759e36d6d15af570bbd486d5a94"
 dependencies = [
  "anyhow",
  "bindgen",
@@ -1312,6 +1332,7 @@ dependencies = [
  "libz-sys",
  "rattler_conda_types",
  "serde",
+ "tempfile",
  "thiserror",
  "tracing",
  "url",

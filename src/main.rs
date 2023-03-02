@@ -1,3 +1,6 @@
+mod available_packages_cache;
+mod fetch;
+mod generic_cache;
 mod solve_environment;
 
 use crate::solve_environment::SolveEnvironmentOk;
@@ -5,17 +8,12 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{routing::post, Json, Router};
-use futures::{StreamExt, TryFutureExt};
-use rattler_conda_types::{
-    Channel, ChannelConfig, GenericVirtualPackage, MatchSpec, Platform, RepoData,
-};
-use rattler_repodata_gateway::fetch::FetchRepoDataOptions;
+use rattler_conda_types::{Channel, ChannelConfig, GenericVirtualPackage, MatchSpec, Platform};
 use rattler_solve::{LibsolvBackend, SolverBackend, SolverProblem};
-use reqwest::Client;
 use serde::Serialize;
 use std::collections::HashSet;
 use std::net::SocketAddr;
-use std::path::PathBuf;
+use available_packages_cache::AvailablePackagesCache;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -26,15 +24,13 @@ struct SolveError<T: Serialize> {
 }
 
 struct AppState {
-    repo_data_cache_path: PathBuf,
+    available_packages: AvailablePackagesCache,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let repo_data_cache_path =
-        PathBuf::from(std::env::var("RATTLER_SERVER_REPO_DATA_DIR").unwrap());
     let state = AppState {
-        repo_data_cache_path,
+        available_packages: AvailablePackagesCache::new(),
     };
 
     let app = Router::new()
@@ -75,7 +71,6 @@ async fn solve_environment(
     }
 
     // Get the virtual packages
-    // TODO: do some kind of validation and forbid invalid ones
     let mut virtual_packages = Vec::with_capacity(payload.virtual_packages.len());
     for spec in &payload.virtual_packages {
         let mut split = spec.split('=');
@@ -125,7 +120,6 @@ async fn solve_environment(
     // Each channel contains multiple subdirectories. Users can specify the subdirectories they want
     // to use when specifying their channels. If the user didn't specify the default subdirectories
     // we use defaults based on the current platform.
-    // TODO: let the user specify the platform
     let target_platform = match Platform::from_str(&payload.platform) {
         Ok(p) => p,
         Err(e) => {
@@ -140,97 +134,48 @@ async fn solve_environment(
         }
     };
 
+    let mut available_packages = Vec::new();
     let default_platforms = &[target_platform, Platform::NoArch];
-    let channel_urls = channels
-        .iter()
-        .flat_map(|channel| {
-            channel
-                .platforms
-                .as_ref()
-                .map(|p| p.as_slice())
-                .unwrap_or(default_platforms)
-                .iter()
-                .map(move |platform| (channel.clone(), *platform))
-        })
-        .collect::<Vec<_>>();
 
-    // For each channel/subdirectory combination, download and cache the `repodata.json` that should
-    // be available from the corresponding Url.
-    let download_client = Client::builder()
-        .no_gzip()
-        .build()
-        .expect("failed to create client");
+    // TODO: do this in parallel
+    for channel in channels {
+        let platforms = channel
+            .platforms
+            .as_ref()
+            .map(|p| p.as_slice())
+            .unwrap_or(default_platforms);
+        for &platform in platforms {
+            let repo_data = state.available_packages.get(&channel, platform).await;
 
-    let repodata_cache_path = &state.repo_data_cache_path;
-    let channel_and_platform_len = channel_urls.len();
-    let repodata_download_client = download_client.clone();
-    let available_packages = futures::stream::iter(channel_urls)
-        .map(move |(channel, platform)| {
-            let repodata_cache = repodata_cache_path.clone();
-            let client = repodata_download_client.clone();
-
-            async move {
-                let result = rattler_repodata_gateway::fetch::fetch_repo_data(
-                    channel.platform_url(platform),
-                    client,
-                    repodata_cache.as_path(),
-                    FetchRepoDataOptions::default(),
-                )
-                .map_err(|e| e.to_string())
-                .await?;
-
-                // Deserialize the data. This is a hefty blocking operation so we spawn it as a tokio blocking
-                // task.
-                let repo_data_json_path = result.repo_data_json_path.clone();
-                match tokio::task::spawn_blocking(move || {
-                    RepoData::from_path(repo_data_json_path)
-                        .map(move |repodata| repodata.into_repo_data_records(&channel))
-                })
-                .await
-                {
-                    Ok(Ok(repodata)) => Ok(repodata),
-                    Ok(Err(err)) => Err(err.to_string()),
-                    Err(err) => {
-                        if let Ok(panic) = err.try_into_panic() {
-                            std::panic::resume_unwind(panic);
-                        }
-                        // Since the task was cancelled most likely the whole async stack is being cancelled.
-                        Ok(Vec::new())
-                    }
-                }
+            match repo_data {
+                Ok(repo_data) => available_packages.push(repo_data),
+                Err(error) => return (StatusCode::BAD_REQUEST, error).into_response(),
             }
-        })
-        .buffer_unordered(channel_and_platform_len)
-        .collect::<Vec<_>>()
-        .await
-        // Collect into another iterator where we extract the first erroneous result
-        .into_iter()
-        .collect::<Result<Vec<_>, _>>();
-
-    let available_packages = match available_packages {
-        Ok(p) => p,
-        Err(e) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(SolveError {
-                    message: "Unable to retrieve available packages".to_string(),
-                    extra_info: e,
-                }),
-            )
-                .into_response();
         }
-    };
+    }
 
-    let problem = SolverProblem {
-        available_packages,
-        virtual_packages,
-        specs: matchspecs,
-        locked_packages: Vec::new(),
-        pinned_packages: Vec::new(),
-    };
+    let solve_start = std::time::Instant::now();
 
-    // TODO: this call will block for multiple seconds, we should run it on a separate thread!
-    match LibsolvBackend.solve(problem) {
+    // This call will block for hundreds of milliseconds, or longer
+    let result = tokio::task::spawn_blocking(move || {
+        let available_packages: Vec<_> = available_packages
+            .iter()
+            .map(|repodata| repodata.as_libsolv_repo_data())
+            .collect();
+        let problem = SolverProblem {
+            available_packages: available_packages.into_iter(),
+            virtual_packages,
+            specs: matchspecs,
+            locked_packages: Vec::new(),
+            pinned_packages: Vec::new(),
+        };
+
+        LibsolvBackend.solve(problem)
+    })
+    .await
+    .unwrap();
+
+    let response = match result {
         Ok(operations) => {
             let installed = operations.into_iter().collect();
 
@@ -240,5 +185,10 @@ async fn solve_environment(
             .into_response()
         }
         Err(e) => (StatusCode::BAD_REQUEST, format!("Unable to solve: {e:?}")).into_response(),
-    }
+    };
+
+    let solve_end = std::time::Instant::now();
+    println!("Solve: {} ms", (solve_end - solve_start).as_millis());
+
+    response
 }
