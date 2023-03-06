@@ -12,6 +12,7 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{routing::post, Json, Router};
+use futures::{StreamExt, TryStreamExt};
 use rattler_conda_types::{
     Channel, ChannelConfig, GenericVirtualPackage, MatchSpec, Platform, RepoDataRecord,
 };
@@ -22,6 +23,12 @@ use std::sync::Arc;
 use tracing::{event, span, Instrument, Level};
 use tracing_subscriber::fmt::format;
 use tracing_subscriber::fmt::format::FmtSpan;
+
+// TODO: what is a good number here? JSON downloads are very CPU-intensive, because they require
+// parsing huge JSON bodies. Keeping them to 2 concurrent downloads per request might be reasonable.
+// Alternatively, we might want to allow infinite downloads, but limit the amount of JSON parsing
+// threads spawned inside `stream_and_decode_to_memory`.
+const CONCURRENT_REPODATA_JSON_DOWNLOADS: usize = 2;
 
 struct AppState {
     available_packages: AvailablePackagesCache,
@@ -170,21 +177,29 @@ async fn solve_environment_inner(
         }
     };
 
-    let mut available_packages = Vec::new();
     let default_platforms = &[target_platform, Platform::NoArch];
 
-    // TODO: do this in parallel
-    for channel in channels {
+    // The (channel, platform) combinations that have their own repodata.json
+    let channels_and_platforms = channels.into_iter().flat_map(|channel| {
         let platforms = channel
             .platforms
             .as_ref()
             .map(|p| p.as_slice())
-            .unwrap_or(default_platforms);
-        for &platform in platforms {
-            let repo_data = state.available_packages.get(&channel, platform).await?;
-            available_packages.push(repo_data);
-        }
-    }
+            .unwrap_or(default_platforms)
+            .to_vec();
+
+        platforms.into_iter().map(move |p| (channel.clone(), p))
+    });
+
+    // Get the available packages for each (channel, platform) combination
+    let available_packages: Vec<_> = futures::stream::iter(channels_and_platforms)
+        .map(|(channel, platform)| {
+            let state = &state;
+            async move { state.available_packages.get(&channel, platform).await }
+        })
+        .buffer_unordered(CONCURRENT_REPODATA_JSON_DOWNLOADS)
+        .try_collect()
+        .await?;
 
     // This call will block for hundreds of milliseconds, or longer
     let result = tokio::task::spawn_blocking(move || {
