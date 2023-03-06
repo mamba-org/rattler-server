@@ -20,6 +20,7 @@ use rattler_solve::{LibsolvBackend, SolverBackend, SolverProblem};
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::time::Duration;
 use tracing::{event, span, Instrument, Level};
 use tracing_subscriber::fmt::format;
 use tracing_subscriber::fmt::format::FmtSpan;
@@ -34,6 +35,15 @@ struct AppState {
     available_packages: AvailablePackagesCache,
 }
 
+/// Checks the `AvailablePackagesCache` every minute to remove outdated entries
+async fn cache_gc_task(state: Arc<AppState>) {
+    let mut interval_timer = tokio::time::interval(Duration::from_secs(60));
+    loop {
+        interval_timer.tick().await;
+        state.available_packages.gc();
+    }
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let subscriber = tracing_subscriber::fmt()
@@ -43,13 +53,19 @@ async fn main() -> anyhow::Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    let state = AppState {
-        available_packages: AvailablePackagesCache::new(),
-    };
+    // TODO: micromamba server uses 30 minutes, but here we are using 60s to make testing easier
+    // We should make sure to switch back to 30 minutes (or whatever is best) before deploying this
+    // to prod
+    let cache_expiration = Duration::from_secs(60);
+    let state = Arc::new(AppState {
+        available_packages: AvailablePackagesCache::with_expiration(cache_expiration),
+    });
+
+    tokio::spawn(cache_gc_task(state.clone()));
 
     let app = Router::new()
         .route("/solve", post(solve_environment))
-        .with_state(Arc::new(state));
+        .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     axum::Server::bind(&addr)

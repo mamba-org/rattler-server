@@ -3,6 +3,7 @@ use rattler_conda_types::{Channel, Platform, RepoDataRecord};
 use rattler_solve::{cache_libsolv_repodata, LibcByteSlice, LibsolvRepoData};
 use reqwest::{Client, Url};
 use std::sync::Arc;
+use std::time::Duration;
 use tracing::{span, Instrument, Level};
 
 use crate::generic_cache::{GenericCache, GetCachedResult};
@@ -14,12 +15,17 @@ pub struct AvailablePackagesCache {
 }
 
 impl AvailablePackagesCache {
-    /// Creates an empty `AvailablePackagesCache`
-    pub fn new() -> AvailablePackagesCache {
+    /// Creates an empty `AvailablePackagesCache` with keys that expire after `expiration`
+    pub fn with_expiration(expiration: Duration) -> AvailablePackagesCache {
         AvailablePackagesCache {
-            cache: GenericCache::new(),
+            cache: GenericCache::with_expiration(expiration),
             download_client: Client::new(),
         }
+    }
+
+    /// Removes outdated data from the cache
+    pub fn gc(&self) {
+        self.cache.gc();
     }
 
     /// Gets the repo data for this channel and platform if they exist in the cache, and downloads
