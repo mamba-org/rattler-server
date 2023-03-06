@@ -36,7 +36,7 @@ impl AvailablePackagesCache {
         platform: Platform,
     ) -> Result<Arc<LibsolvOwnedRepoData>, anyhow::Error> {
         let platform_url = channel.platform_url(platform);
-        let write_guard = match self.cache.get_cached(&platform_url).await {
+        let write_token = match self.cache.get_cached(&platform_url).await {
             GetCachedResult::Found(repodata) => return Ok(repodata),
             GetCachedResult::NotFound(write_guard) => write_guard,
         };
@@ -61,8 +61,7 @@ impl AvailablePackagesCache {
         .context("panicked while creating .solv file")?;
 
         // Update the cache
-        self.cache
-            .set(platform_url.clone(), owned_repodata.clone(), write_guard);
+        self.cache.set(write_token, owned_repodata.clone());
 
         Ok(owned_repodata)
     }

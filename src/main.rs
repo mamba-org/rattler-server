@@ -46,6 +46,8 @@ async fn cache_gc_task(state: Arc<AppState>) {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // TODO: this is all right for prototyping, but we will want to use a different subscriber for
+    // production
     let subscriber = tracing_subscriber::fmt()
         .event_format(format().pretty())
         .with_span_events(FmtSpan::CLOSE)

@@ -58,7 +58,7 @@ impl<TKey: Hash + Eq + Display + Clone, TValue> GenericCache<TKey, TValue> {
     /// Gets the cached data if available, waiting for it if there is an active writer (to avoid
     /// double work). If the data is not available and there is no other task busy with writing it,
     /// returns not found.
-    pub async fn get_cached(&self, key: &TKey) -> GetCachedResult<TValue> {
+    pub async fn get_cached(&self, key: &TKey) -> GetCachedResult<TKey, TValue> {
         loop {
             if let Some(repodata) = self.cached_data.get(key) {
                 if Instant::now() > repodata.value().1 + self.expiration {
@@ -87,33 +87,42 @@ impl<TKey: Hash + Eq + Display + Clone, TValue> GenericCache<TKey, TValue> {
                     let lock = Arc::new(RwLock::new(()));
                     let write_guard = lock.clone().write_owned().await;
                     e.insert(lock);
-                    return GetCachedResult::NotFound(write_guard);
+                    return GetCachedResult::NotFound(WriteToken {
+                        key: key.clone(),
+                        rw_guard: write_guard,
+                    });
                 }
             };
         }
     }
 
     /// Caches the value at the given key and notifies
-    pub fn set(&self, key: TKey, value: Arc<TValue>, guard: OwnedRwLockWriteGuard<()>) {
+    pub fn set(&self, token: WriteToken<TKey>, value: Arc<TValue>) {
         self.cached_data
-            .insert(key.clone(), (value, Instant::now()));
+            .insert(token.key.clone(), (value, Instant::now()));
 
         // This will notify anyone who is waiting for the write to finish
-        drop(guard);
+        drop(token.rw_guard);
 
         // Remove the active write, since it is no longer necessary
-        self.active_writes.remove(&key);
+        self.active_writes.remove(&token.key);
     }
 }
 
 /// Represents the result of a call to [`GenericCache::get_cached`]
-pub enum GetCachedResult<T> {
+pub enum GetCachedResult<TKey, TValue> {
     /// The key was found in the cache and its value is included in the enum variant
-    Found(Arc<T>),
+    Found(Arc<TValue>),
     /// The key was not found in the cache and there are no active writes, so the caller is expected
     /// to retrieve the value from somewhere else and write it to the cache by calling
-    /// [`GenericCache::set`] with the provided write guard
-    NotFound(OwnedRwLockWriteGuard<()>),
+    /// [`GenericCache::set`] with the provided write token
+    NotFound(WriteToken<TKey>),
+}
+
+/// A token that must be used when adding values to the cache
+pub struct WriteToken<T> {
+    key: T,
+    rw_guard: OwnedRwLockWriteGuard<()>,
 }
 
 #[cfg(test)]
@@ -121,9 +130,13 @@ mod test {
     use super::*;
     use mock_instant::MockClock;
 
+    fn default_cache() -> GenericCache<usize, &'static str> {
+        GenericCache::with_expiration(Duration::from_secs(60))
+    }
+
     #[tokio::test]
     async fn test_gc_works() {
-        let cache = GenericCache::with_expiration(Duration::from_secs(60));
+        let cache = default_cache();
         add_item(&cache, 42, "foo").await;
 
         // Sanity check
@@ -149,12 +162,42 @@ mod test {
         assert_eq!(*value.0.as_ref(), "bar");
     }
 
-    async fn add_item(cache: &GenericCache<usize, &'static str>, key: usize, value: &'static str) {
+    #[tokio::test]
+    async fn test_second_get_waits_till_data_available() {
+        let cache = Arc::new(default_cache());
+
+        let write_token = get_cached_not_found(&cache, 42).await;
+
+        let cloned_cache = cache.clone();
+        let get_cached_2 = tokio::spawn(async move {
+            let cached = cloned_cache.get_cached(&42).await;
+            match cached {
+                GetCachedResult::NotFound(_) => {
+                    panic!("get_cached should only yield once the value has been written")
+                }
+                GetCachedResult::Found(value) => value,
+            }
+        });
+
+        // Set the value
+        cache.set(write_token, Arc::new("foo"));
+
+        // Ensure `get_cached_2` completed successfully and returned the value we just wrote
+        assert_eq!(*get_cached_2.await.unwrap(), "foo");
+    }
+
+    async fn get_cached_not_found(
+        cache: &GenericCache<usize, &'static str>,
+        key: usize,
+    ) -> WriteToken<usize> {
         match cache.get_cached(&key).await {
             GetCachedResult::Found(_) => unreachable!(),
-            GetCachedResult::NotFound(rw_guard) => {
-                cache.set(key, Arc::new(value), rw_guard);
-            }
+            GetCachedResult::NotFound(write_token) => write_token,
         }
+    }
+
+    async fn add_item(cache: &GenericCache<usize, &'static str>, key: usize, value: &'static str) {
+        let write_token = get_cached_not_found(cache, key).await;
+        cache.set(write_token, Arc::new(value));
     }
 }
