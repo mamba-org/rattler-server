@@ -1,7 +1,9 @@
+use anyhow::Context;
 use rattler_conda_types::{Channel, Platform, RepoDataRecord};
 use rattler_solve::{cache_libsolv_repodata, LibcByteSlice, LibsolvRepoData};
 use reqwest::{Client, Url};
 use std::sync::Arc;
+use tracing::{span, Instrument, Level};
 
 use crate::generic_cache::{GenericCache, GetCachedResult};
 
@@ -26,40 +28,33 @@ impl AvailablePackagesCache {
         &self,
         channel: &Channel,
         platform: Platform,
-    ) -> Result<Arc<LibsolvOwnedRepoData>, String> {
+    ) -> Result<Arc<LibsolvOwnedRepoData>, anyhow::Error> {
         let platform_url = channel.platform_url(platform);
         let write_guard = match self.cache.get_cached(&platform_url).await {
             GetCachedResult::Found(repodata) => return Ok(repodata),
             GetCachedResult::NotFound(write_guard) => write_guard,
         };
 
-        println!("Cache miss: {platform_url}");
-
         // Download
-        let download_start = std::time::Instant::now();
         let records = crate::fetch::get_repodata(
             &self.download_client,
             channel,
             channel.platform_url(platform),
         )
         .await?;
-        let download_end = std::time::Instant::now();
-        println!(
-            "Download and parse repodata.json: {} ms",
-            (download_end - download_start).as_millis()
-        );
 
-        // Create .solv
-        let create_solv_start = std::time::Instant::now();
-        let solv_file = cache_libsolv_repodata(platform_url.to_string(), records.as_slice());
-        let create_solv_end = std::time::Instant::now();
-        println!(
-            "Create .solv file: {} ms",
-            (create_solv_end - create_solv_start).as_millis()
-        );
+        // Create .solv (can block for seconds)
+        let platform_url_clone = platform_url.clone();
+        let owned_repodata = tokio::task::spawn_blocking(move || {
+            let solv_file =
+                cache_libsolv_repodata(platform_url_clone.to_string(), records.as_slice());
+            Arc::new(LibsolvOwnedRepoData { records, solv_file })
+        })
+        .instrument(span!(Level::DEBUG, "cache_libsolv_repodata"))
+        .await
+        .context("panicked while creating .solv file")?;
 
         // Update the cache
-        let owned_repodata = Arc::new(LibsolvOwnedRepoData { records, solv_file });
         self.cache
             .set(platform_url.clone(), owned_repodata.clone(), write_guard);
 

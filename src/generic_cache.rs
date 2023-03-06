@@ -6,6 +6,7 @@ use dashmap::DashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{OwnedRwLockWriteGuard, RwLock};
+use tracing::{event, Level};
 
 pub struct GenericCache<TKey, TValue> {
     cached_data: DashMap<TKey, (Arc<TValue>, Instant)>,
@@ -30,9 +31,9 @@ impl<TKey: Hash + Eq + Display + Clone, TValue> GenericCache<TKey, TValue> {
         loop {
             if let Some(repodata) = self.cached_data.get(key) {
                 if Instant::now() > repodata.value().1 + self.timeout {
-                    println!("Cache hit, but data was stale: {key}");
+                    event!(Level::TRACE, "Cache hit, but data was stale: {key}");
                 } else {
-                    println!("Cache hit: {key}");
+                    event!(Level::TRACE, "Cache hit: {key}");
                     return GetCachedResult::Found(repodata.value().0.clone());
                 }
             }
@@ -42,14 +43,17 @@ impl<TKey: Hash + Eq + Display + Clone, TValue> GenericCache<TKey, TValue> {
                 Entry::Occupied(e) => {
                     // A download is going on. Wait for it to finish and try to get the result in
                     // the next loop iteration
-                    println!("Download already started, waiting for it to finish...");
+                    event!(
+                        Level::TRACE,
+                        "Download already started, waiting for it to finish..."
+                    );
                     let _ = e.get().read().await;
-                    println!("Finished, continuing...");
+                    event!(Level::TRACE, "Finished, continuing...");
 
                     // The write is no longer active (it is crucial to drop the entry first to avoid
                     // deadlocks)
                     drop(e);
-                    self.active_writes.remove(&key);
+                    self.active_writes.remove(key);
                 }
                 Entry::Vacant(e) => {
                     // No download is going on, register ours so others can see it (there can still
@@ -66,8 +70,7 @@ impl<TKey: Hash + Eq + Display + Clone, TValue> GenericCache<TKey, TValue> {
 
     /// Caches the value at the given key and notifies
     pub fn set(&self, key: TKey, value: Arc<TValue>, guard: OwnedRwLockWriteGuard<()>) {
-        self.cached_data
-            .insert(key.clone(), (value, Instant::now()));
+        self.cached_data.insert(key, (value, Instant::now()));
 
         // This will notify anyone who is waiting for the write to finish
         drop(guard);
