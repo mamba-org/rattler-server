@@ -4,24 +4,23 @@ mod error;
 mod fetch;
 mod generic_cache;
 
-use crate::dto::{SolveEnvironment, SolveEnvironmentErr, SolveEnvironmentOk};
-use crate::error::{ApiError, ParseError, ParseErrors, ValidationError};
+use crate::dto::{SolveEnvironment, SolveEnvironmentOk};
+use crate::error::{response_from_error, ApiError, ParseError, ParseErrors, ValidationError};
 use anyhow::Context;
 use available_packages_cache::AvailablePackagesCache;
 use axum::extract::State;
-use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{routing::post, Json, Router};
 use futures::{StreamExt, TryStreamExt};
 use rattler_conda_types::{
     Channel, ChannelConfig, GenericVirtualPackage, MatchSpec, Platform, RepoDataRecord,
 };
-use rattler_solve::{LibsolvBackend, SolveError, SolverBackend, SolverProblem};
+use rattler_solve::{LibsolvBackend, SolverBackend, SolverProblem};
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::{event, span, Instrument, Level};
+use tracing::{span, Instrument, Level};
 use tracing_subscriber::fmt::format::{format, FmtSpan};
 
 // TODO: what is a good number here? JSON downloads are very CPU-intensive, because they require
@@ -84,81 +83,7 @@ async fn solve_environment(
     let result = solve_environment_inner(state, payload).await;
     match result {
         Ok(packages) => Json(SolveEnvironmentOk { packages }).into_response(),
-        Err(e) => api_error_to_response(e),
-    }
-}
-
-fn api_error_to_response(api_error: ApiError) -> Response {
-    match api_error {
-        ApiError::Solver(SolveError::UnsupportedOperations(ops)) => {
-            event!(
-                Level::ERROR,
-                "Internal server error: unsupported operations in solver ({})",
-                ops.join(", ")
-            );
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(SolveEnvironmentErr::<()> {
-                    error_kind: "internal".to_string(),
-                    message: None,
-                    additional_info: None,
-                }),
-            )
-                .into_response()
-        }
-        ApiError::Internal(e) => {
-            event!(
-                Level::ERROR,
-                "Internal server error: {} (caused by {})",
-                e.to_string(),
-                e.source()
-                    .map(|e2| e2.to_string())
-                    .unwrap_or("unknown source".to_string())
-            );
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(SolveEnvironmentErr::<()> {
-                    error_kind: "internal".to_string(),
-                    message: None,
-                    additional_info: None,
-                }),
-            )
-                .into_response()
-        }
-        ApiError::FetchRepoDataJson(url, e) => {
-            event!(
-                Level::WARN,
-                "Error fetching repodata.json: {}",
-                e.to_string()
-            );
-            (
-                StatusCode::BAD_REQUEST,
-                Json(SolveEnvironmentErr {
-                    error_kind: "http".to_string(),
-                    message: Some("error fetching repodata.json".to_string()),
-                    additional_info: Some(format!("url: {url}")),
-                }),
-            )
-                .into_response()
-        }
-        ApiError::Validation(e) => (
-            StatusCode::BAD_REQUEST,
-            Json(SolveEnvironmentErr {
-                error_kind: "validation".to_string(),
-                message: Some(e.to_string()),
-                additional_info: Some(e),
-            }),
-        )
-            .into_response(),
-        ApiError::Solver(SolveError::Unsolvable(e)) => (
-            StatusCode::CONFLICT,
-            Json(SolveEnvironmentErr {
-                error_kind: "solver".to_string(),
-                message: Some("no solution found for the specified dependencies".to_string()),
-                additional_info: Some(e),
-            }),
-        )
-            .into_response(),
+        Err(e) => response_from_error(e),
     }
 }
 
