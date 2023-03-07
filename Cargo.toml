@@ -23,6 +23,7 @@ thiserror = "1.0.39"
 tracing = "0.1.37"
 tracing-subscriber = {version="0.3.16", features=["env-filter"]}
 tracing-tree = "0.2.2"
+clap = { version = "4.1.8", features = ["derive", "env"] }
 
 [dev-dependencies]
 mock_instant = "0.2.1"

@@ -3,10 +3,12 @@ mod dto;
 mod error;
 mod fetch;
 mod generic_cache;
+mod cli;
 
 use crate::dto::{SolveEnvironment, SolveEnvironmentOk};
 use crate::error::{response_from_error, ApiError, ParseError, ParseErrors, ValidationError};
 use anyhow::Context;
+use clap::Parser;
 use available_packages_cache::AvailablePackagesCache;
 use axum::extract::State;
 use axum::response::{IntoResponse, Response};
@@ -22,15 +24,11 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::{span, Instrument, Level};
 use tracing_subscriber::fmt::format::{format, FmtSpan};
-
-// TODO: what is a good number here? JSON downloads are very CPU-intensive, because they require
-// parsing huge JSON bodies. Keeping them to 2 concurrent downloads per request might be reasonable.
-// Alternatively, we might want to allow infinite downloads, but limit the amount of JSON parsing
-// threads spawned inside `stream_and_decode_to_memory`.
-const CONCURRENT_REPODATA_JSON_DOWNLOADS: usize = 1;
+use crate::cli::Args;
 
 struct AppState {
     available_packages: AvailablePackagesCache,
+    args: Args,
 }
 
 /// Checks the `AvailablePackagesCache` every minute to remove outdated entries
@@ -44,6 +42,8 @@ async fn cache_gc_task(state: Arc<AppState>) {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let args = Args::parse();
+
     // TODO: this is all right for prototyping, but we will want to use a different subscriber for
     // production
     let subscriber = tracing_subscriber::fmt()
@@ -53,12 +53,12 @@ async fn main() -> anyhow::Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    // TODO: micromamba server uses 30 minutes, but here we are using 60s to make testing easier
-    // We should make sure to switch back to 30 minutes (or whatever is best) before deploying this
-    // to prod
-    let cache_expiration = Duration::from_secs(60 * 30);
+    let cache_expiration = Duration::from_secs(args.repodata_cache_expiration_seconds);
+    let app_port = args.port;
+
     let state = Arc::new(AppState {
         available_packages: AvailablePackagesCache::with_expiration(cache_expiration),
+        args
     });
 
     tokio::spawn(cache_gc_task(state.clone()));
@@ -67,7 +67,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/solve", post(solve_environment))
         .with_state(state);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr = SocketAddr::from(([127, 0, 0, 1], app_port));
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await?;
@@ -178,7 +178,7 @@ async fn solve_environment_inner(
             let state = &state;
             async move { state.available_packages.get(&channel, platform).await }
         })
-        .buffer_unordered(CONCURRENT_REPODATA_JSON_DOWNLOADS)
+        .buffer_unordered(state.args.concurrent_repodata_downloads_per_request)
         .try_collect()
         .await?;
 
