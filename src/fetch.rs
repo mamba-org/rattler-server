@@ -1,3 +1,4 @@
+use crate::error::ApiError;
 use futures::TryStreamExt;
 use rattler_conda_types::{Channel, RepoData, RepoDataRecord};
 use reqwest::{Client, Response, Url};
@@ -11,10 +12,19 @@ pub async fn get_repodata(
     client: &Client,
     channel: &Channel,
     platform_url: Url,
-) -> anyhow::Result<Vec<RepoDataRecord>> {
+) -> Result<Vec<RepoDataRecord>, ApiError> {
     let (repodata_url, encoding) = get_repodata_url(client, &platform_url).await;
-    let response = client.get(repodata_url).send().await?.error_for_status()?;
-    let records = stream_and_decode_to_memory(response, encoding, channel.clone()).await?;
+    let repodata_url_clone = repodata_url.clone();
+    let response = client
+        .get(repodata_url)
+        .send()
+        .await
+        .map_err(|e| ApiError::FetchRepoDataJson(repodata_url_clone.clone(), e))?
+        .error_for_status()
+        .map_err(|e| ApiError::FetchRepoDataJson(repodata_url_clone, e))?;
+    let records = stream_and_decode_to_memory(response, encoding, channel.clone())
+        .await
+        .map_err(ApiError::Internal)?;
     Ok(records)
 }
 

@@ -1,6 +1,7 @@
 //! Contains the errors that the API can return when trying to solve an environment
 
 use rattler_solve::SolveError;
+use reqwest::Url;
 use serde::{Serialize, Serializer};
 use thiserror::Error;
 
@@ -10,6 +11,8 @@ pub enum ApiError {
     Internal(#[from] anyhow::Error),
     #[error("validation error: {0}")]
     Validation(#[from] ValidationError),
+    #[error("error fetching repodata.json from {}", .0.to_string())]
+    FetchRepoDataJson(Url, #[source] reqwest::Error),
     #[error("solve error: {0}")]
     Solver(#[from] SolveError),
 }

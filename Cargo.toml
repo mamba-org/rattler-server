@@ -11,9 +11,9 @@ axum = {version="0.6.6", features=["json"]}
 serde = {version="1.0.152", features=["derive"]}
 serde_json = "1.0.68"
 tokio = {version="1.25.0", features=["full"]}
-rattler_solve = {git="https://github.com/aochagavia/rattler.git", branch="libsolv-reuse-input"}
-rattler_conda_types = {git="https://github.com/aochagavia/rattler.git", branch="libsolv-reuse-input"}
-rattler_repodata_gateway = {git="https://github.com/aochagavia/rattler.git", branch="libsolv-reuse-input"}
+rattler_solve = {git="https://github.com/aochagavia/rattler.git", branch="libsolv-errors"}
+rattler_conda_types = {git="https://github.com/aochagavia/rattler.git", branch="libsolv-errors"}
+rattler_repodata_gateway = {git="https://github.com/aochagavia/rattler.git", branch="libsolv-errors"}
 futures = "0.3.26"
 reqwest = "0.11.14"
 dashmap = "5.4.0"
@@ -22,6 +22,7 @@ async-compression = {version="0.3.15", features=["tokio", "bzip2", "zstd"]}
 thiserror = "1.0.39"
 tracing = "0.1.37"
 tracing-subscriber = {version="0.3.16", features=["env-filter"]}
+tracing-tree = "0.2.2"
 
 [dev-dependencies]
 mock_instant = "0.2.1"

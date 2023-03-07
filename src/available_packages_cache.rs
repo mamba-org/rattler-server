@@ -1,3 +1,4 @@
+use crate::error::ApiError;
 use anyhow::Context;
 use rattler_conda_types::{Channel, Platform, RepoDataRecord};
 use rattler_solve::{cache_libsolv_repodata, LibcByteSlice, LibsolvRepoData};
@@ -34,7 +35,7 @@ impl AvailablePackagesCache {
         &self,
         channel: &Channel,
         platform: Platform,
-    ) -> Result<Arc<LibsolvOwnedRepoData>, anyhow::Error> {
+    ) -> Result<Arc<LibsolvOwnedRepoData>, ApiError> {
         let platform_url = channel.platform_url(platform);
         let write_token = match self.cache.get_cached(&platform_url).await {
             GetCachedResult::Found(repodata) => return Ok(repodata),
@@ -58,7 +59,8 @@ impl AvailablePackagesCache {
         })
         .instrument(span!(Level::DEBUG, "cache_libsolv_repodata"))
         .await
-        .context("panicked while creating .solv file")?;
+        .context("panicked while creating .solv file")
+        .map_err(ApiError::Internal)?;
 
         // Update the cache
         self.cache.set(write_token, owned_repodata.clone());

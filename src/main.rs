@@ -16,20 +16,19 @@ use futures::{StreamExt, TryStreamExt};
 use rattler_conda_types::{
     Channel, ChannelConfig, GenericVirtualPackage, MatchSpec, Platform, RepoDataRecord,
 };
-use rattler_solve::{LibsolvBackend, SolverBackend, SolverProblem};
+use rattler_solve::{LibsolvBackend, SolveError, SolverBackend, SolverProblem};
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{event, span, Instrument, Level};
-use tracing_subscriber::fmt::format;
-use tracing_subscriber::fmt::format::FmtSpan;
+use tracing_subscriber::fmt::format::{format, FmtSpan};
 
 // TODO: what is a good number here? JSON downloads are very CPU-intensive, because they require
 // parsing huge JSON bodies. Keeping them to 2 concurrent downloads per request might be reasonable.
 // Alternatively, we might want to allow infinite downloads, but limit the amount of JSON parsing
 // threads spawned inside `stream_and_decode_to_memory`.
-const CONCURRENT_REPODATA_JSON_DOWNLOADS: usize = 2;
+const CONCURRENT_REPODATA_JSON_DOWNLOADS: usize = 1;
 
 struct AppState {
     available_packages: AvailablePackagesCache,
@@ -58,7 +57,7 @@ async fn main() -> anyhow::Result<()> {
     // TODO: micromamba server uses 30 minutes, but here we are using 60s to make testing easier
     // We should make sure to switch back to 30 minutes (or whatever is best) before deploying this
     // to prod
-    let cache_expiration = Duration::from_secs(60);
+    let cache_expiration = Duration::from_secs(60 * 30);
     let state = Arc::new(AppState {
         available_packages: AvailablePackagesCache::with_expiration(cache_expiration),
     });
@@ -91,14 +90,53 @@ async fn solve_environment(
 
 fn api_error_to_response(api_error: ApiError) -> Response {
     match api_error {
-        ApiError::Internal(e) => {
-            event!(Level::ERROR, "Internal server error: {}", e.to_string());
+        ApiError::Solver(SolveError::UnsupportedOperations(ops)) => {
+            event!(
+                Level::ERROR,
+                "Internal server error: unsupported operations in solver ({})",
+                ops.join(", ")
+            );
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(SolveEnvironmentErr::<()> {
                     error_kind: "internal".to_string(),
                     message: None,
                     additional_info: None,
+                }),
+            )
+                .into_response()
+        }
+        ApiError::Internal(e) => {
+            event!(
+                Level::ERROR,
+                "Internal server error: {} (caused by {})",
+                e.to_string(),
+                e.source()
+                    .map(|e2| e2.to_string())
+                    .unwrap_or("unknown source".to_string())
+            );
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(SolveEnvironmentErr::<()> {
+                    error_kind: "internal".to_string(),
+                    message: None,
+                    additional_info: None,
+                }),
+            )
+                .into_response()
+        }
+        ApiError::FetchRepoDataJson(url, e) => {
+            event!(
+                Level::WARN,
+                "Error fetching repodata.json: {}",
+                e.to_string()
+            );
+            (
+                StatusCode::BAD_REQUEST,
+                Json(SolveEnvironmentErr {
+                    error_kind: "http".to_string(),
+                    message: Some("error fetching repodata.json".to_string()),
+                    additional_info: Some(format!("url: {url}")),
                 }),
             )
                 .into_response()
@@ -112,12 +150,12 @@ fn api_error_to_response(api_error: ApiError) -> Response {
             }),
         )
             .into_response(),
-        ApiError::Solver(e) => (
+        ApiError::Solver(SolveError::Unsolvable(e)) => (
             StatusCode::CONFLICT,
-            Json(SolveEnvironmentErr::<()> {
+            Json(SolveEnvironmentErr {
                 error_kind: "solver".to_string(),
-                message: Some(e.to_string()),
-                additional_info: None,
+                message: Some("no solution found for the specified dependencies".to_string()),
+                additional_info: Some(e),
             }),
         )
             .into_response(),
@@ -137,7 +175,7 @@ async fn solve_environment_inner(
     let mut matchspecs = Vec::with_capacity(payload.specs.len());
     let mut invalid_matchspecs = Vec::new();
     for spec in &payload.specs {
-        match MatchSpec::from_str(spec, &channel_config) {
+        match MatchSpec::from_str(spec) {
             Ok(spec) => matchspecs.push(spec),
             Err(e) => invalid_matchspecs.push(ParseError {
                 input: spec.to_string(),
