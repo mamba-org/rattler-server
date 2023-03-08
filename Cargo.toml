@@ -27,3 +27,5 @@ clap = { version = "4.1.8", features = ["derive", "env"] }
 
 [dev-dependencies]
 mock_instant = "0.2.1"
+rstest = "0.16.0"
+serde_json = "1.0.68"

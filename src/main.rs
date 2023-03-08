@@ -1,18 +1,21 @@
 mod available_packages_cache;
+mod cli;
+mod dependency_graph;
 mod dto;
 mod error;
 mod fetch;
 mod generic_cache;
-mod cli;
 
+use crate::cli::Args;
+use crate::dependency_graph::sort_topologically;
 use crate::dto::{SolveEnvironment, SolveEnvironmentOk};
 use crate::error::{response_from_error, ApiError, ParseError, ParseErrors, ValidationError};
 use anyhow::Context;
-use clap::Parser;
 use available_packages_cache::AvailablePackagesCache;
 use axum::extract::State;
 use axum::response::{IntoResponse, Response};
 use axum::{routing::post, Json, Router};
+use clap::Parser;
 use futures::{StreamExt, TryStreamExt};
 use rattler_conda_types::{
     Channel, ChannelConfig, GenericVirtualPackage, MatchSpec, Platform, RepoDataRecord,
@@ -24,7 +27,6 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::{span, Instrument, Level};
 use tracing_subscriber::fmt::format::{format, FmtSpan};
-use crate::cli::Args;
 
 struct AppState {
     available_packages: AvailablePackagesCache,
@@ -58,7 +60,7 @@ async fn main() -> anyhow::Result<()> {
 
     let state = Arc::new(AppState {
         available_packages: AvailablePackagesCache::with_expiration(cache_expiration),
-        args
+        args,
     });
 
     tokio::spawn(cache_gc_task(state.clone()));
@@ -203,7 +205,7 @@ async fn solve_environment_inner(
     .context("solver thread panicked")
     .map_err(ApiError::Internal)?;
 
-    Ok(result?)
+    Ok(sort_topologically(result?))
 }
 
 fn parse_virtual_package(virtual_package: &str) -> Result<GenericVirtualPackage, ParseError> {
