@@ -30,7 +30,8 @@ use tracing_subscriber::fmt::format::{format, FmtSpan};
 
 struct AppState {
     available_packages: AvailablePackagesCache,
-    args: Args,
+    concurrent_repodata_downloads_per_request: usize,
+    channel_config: ChannelConfig,
 }
 
 /// Checks the `AvailablePackagesCache` every minute to remove outdated entries
@@ -55,26 +56,33 @@ async fn main() -> anyhow::Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    let cache_expiration = Duration::from_secs(args.repodata_cache_expiration_seconds);
-    let app_port = args.port;
-
-    let state = Arc::new(AppState {
-        available_packages: AvailablePackagesCache::with_expiration(cache_expiration),
-        args,
-    });
+    let state = Arc::new(state_from_args(&args));
 
     tokio::spawn(cache_gc_task(state.clone()));
 
-    let app = Router::new()
-        .route("/solve", post(solve_environment))
-        .with_state(state);
-
-    let addr = SocketAddr::from(([127, 0, 0, 1], app_port));
+    let app = app(state);
+    let addr = SocketAddr::from(([127, 0, 0, 1], args.port));
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await?;
 
     Ok(())
+}
+
+fn state_from_args(args: &Args) -> AppState {
+    let cache_expiration = Duration::from_secs(args.repodata_cache_expiration_seconds);
+
+    AppState {
+        available_packages: AvailablePackagesCache::with_expiration(cache_expiration),
+        concurrent_repodata_downloads_per_request: args.concurrent_repodata_downloads_per_request,
+        channel_config: ChannelConfig::default(),
+    }
+}
+
+fn app(state: Arc<AppState>) -> Router {
+    Router::new()
+        .route("/solve", post(solve_environment))
+        .with_state(state)
 }
 
 #[tracing::instrument(level = "info", skip(state))]
@@ -95,8 +103,6 @@ async fn solve_environment_inner(
 ) -> Result<Vec<RepoDataRecord>, ApiError> {
     let root_span = span!(Level::TRACE, "solve_environment");
     let _enter = root_span.enter();
-
-    let channel_config = ChannelConfig::default();
 
     // Get match specs
     let mut matchspecs = Vec::with_capacity(payload.specs.len());
@@ -129,7 +135,7 @@ async fn solve_environment_inner(
     let mut channels = Vec::new();
     let mut invalid_channels = Vec::new();
     for channel in &payload.channels {
-        match Channel::from_str(channel, &channel_config) {
+        match Channel::from_str(channel, &state.channel_config) {
             Ok(c) => channels.push(c),
             Err(e) => invalid_channels.push(ParseError {
                 input: channel.to_string(),
@@ -180,7 +186,7 @@ async fn solve_environment_inner(
             let state = &state;
             async move { state.available_packages.get(&channel, platform).await }
         })
-        .buffer_unordered(state.args.concurrent_repodata_downloads_per_request)
+        .buffer_unordered(state.concurrent_repodata_downloads_per_request)
         .try_collect()
         .await?;
 
@@ -235,4 +241,212 @@ fn parse_virtual_package(virtual_package: &str) -> Result<GenericVirtualPackage,
         version,
         build_string,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::body::Body;
+    use axum::http;
+    use axum::http::{header, Request, StatusCode};
+    use mockito::{Mock, ServerGuard};
+    use reqwest::Url;
+    use tower::util::ServiceExt;
+
+    async fn dummy_app() -> (ServerGuard, Router) {
+        let mut state = state_from_args(&Args {
+            concurrent_repodata_downloads_per_request: 1,
+            repodata_cache_expiration_seconds: u64::MAX,
+            // The port is ignored during testing
+            port: 0,
+        });
+
+        let mock_channel_server = mockito::Server::new_async().await;
+        state.channel_config = ChannelConfig {
+            channel_alias: Url::parse(&mock_channel_server.url()).unwrap(),
+        };
+
+        (mock_channel_server, app(Arc::new(state)))
+    }
+
+    fn default_solve_body() -> SolveEnvironment {
+        SolveEnvironment {
+            name: "dummy".to_string(),
+            platform: "linux-64".to_string(),
+            specs: Vec::new(),
+            channels: vec!["conda-forge".to_string()],
+            virtual_packages: Vec::new(),
+        }
+    }
+
+    async fn setup_repodata_mocks(mock_server: &mut ServerGuard) -> Vec<Mock> {
+        let endpoint1 = mock_server
+            .mock("GET", "/conda-forge/linux-64/repodata.json")
+            .with_body(small_repodata_json())
+            .create_async()
+            .await;
+
+        let endpoint2 = mock_server
+            .mock("GET", "/conda-forge/noarch/repodata.json")
+            .with_body(empty_repodata_json())
+            .create_async()
+            .await;
+
+        vec![endpoint1, endpoint2]
+    }
+
+    async fn post_solve(app: Router, body: SolveEnvironment) -> Response {
+        let json = Body::from(serde_json::to_vec(&body).unwrap());
+
+        let request = Request::builder()
+            .uri("/solve")
+            .method(http::Method::POST)
+            .header(header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+            .body(json)
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+
+        response
+    }
+
+    async fn response_body(response: Response) -> String {
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        String::from_utf8(body.to_vec()).unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_solve_invalid_platform() {
+        let body = SolveEnvironment {
+            platform: "asdfasdf".to_string(),
+            ..default_solve_body()
+        };
+
+        let (_mock_channel_server, app) = dummy_app().await;
+        let response = post_solve(app, body).await;
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = response_body(response).await;
+        assert!(body.contains("asdfasdf"), "The response body did not mention the offending platform! See below for the full body:\n{body}");
+    }
+
+    #[tokio::test]
+    async fn test_solve_channel_not_found() {
+        let body = default_solve_body();
+        let (_mock_channel_server, app) = dummy_app().await;
+        let response = post_solve(app, body).await;
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = response_body(response).await;
+        assert!(
+            body.contains("unable to retrieve repodata.json"),
+            "Unexpected response! See below for the full body:\n{body}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_solve_happy_path() {
+        let (mut mock_channel_server, app) = dummy_app().await;
+        let mock_endpoints = setup_repodata_mocks(&mut mock_channel_server).await;
+
+        let body = SolveEnvironment {
+            virtual_packages: vec!["__unix".to_string()],
+            specs: vec!["foo".to_string(), "bar".to_string()],
+            ..default_solve_body()
+        };
+        let response = post_solve(app, body).await;
+
+        for endpoint in mock_endpoints {
+            endpoint.assert_async().await;
+        }
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = response_body(response).await;
+        let body: SolveEnvironmentOk = serde_json::from_str(&body).unwrap();
+
+        let resolved_package_names: Vec<_> = body
+            .packages
+            .iter()
+            .map(|p| &p.package_record.name)
+            .collect();
+        assert_eq!(resolved_package_names, vec!["foo", "bar"]);
+    }
+
+    #[tokio::test]
+    async fn test_solve_unsolvable() {
+        let (mut mock_channel_server, app) = dummy_app().await;
+        let mock_endpoints = setup_repodata_mocks(&mut mock_channel_server).await;
+
+        // `bar` depends on `__unix`, but no virtual packages are provided
+        let body = SolveEnvironment {
+            specs: vec!["bar".to_string()],
+            ..default_solve_body()
+        };
+        let response = post_solve(app, body).await;
+
+        for endpoint in mock_endpoints {
+            endpoint.assert_async().await;
+        }
+
+        assert_eq!(response.status(), StatusCode::CONFLICT);
+        let body = response_body(response).await;
+        assert!(
+            body.contains("nothing provides __unix needed by bar-1.2.3"),
+            "Unexpected body!\n{body}"
+        )
+    }
+
+    fn empty_repodata_json() -> String {
+        r#"{
+          "info": {
+            "subdir": "linux-64"
+          },
+          "packages": {},
+          "packages.conda": {},
+          "repodata_version": 1
+        }"#
+        .to_string()
+    }
+
+    fn small_repodata_json() -> String {
+        r#"{
+          "info": {
+            "subdir": "linux-64"
+          },
+          "packages": {
+            "foo-3.0.2-py36h1af98f8_1.tar.bz2": {
+              "build": "py36h1af98f8_1",
+              "build_number": 1,
+              "depends": [],
+              "license": "MIT",
+              "license_family": "MIT",
+              "md5": "d65ab674acf3b7294ebacaec05fc5b54",
+              "name": "foo",
+              "sha256": "1154fceeb5c4ee9bb97d245713ac21eb1910237c724d2b7103747215663273c2",
+              "size": 414494,
+              "subdir": "linux-64",
+              "timestamp": 1605110689658,
+              "version": "3.0.2"
+            },
+            "bar-1.0-unix_py36h1af98f8_2.tar.bz2": {
+              "build": "unix_py36h1af98f8_2",
+              "build_number": 1,
+              "depends": [
+                "__unix"
+              ],
+              "license": "MIT",
+              "license_family": "MIT",
+              "md5": "bc13aa58e2092bcb0b97c561373d3905",
+              "name": "bar",
+              "sha256": "97ec377d2ad83dfef1194b7aa31b0c9076194e10d995a6e696c9d07dd782b14a",
+              "size": 414494,
+              "subdir": "linux-64",
+              "timestamp": 1605110689658,
+              "version": "1.2.3"
+            }
+          },
+          "packages.conda": {},
+          "repodata_version": 1
+        }"#
+        .to_string()
+    }
 }

@@ -112,7 +112,7 @@ fn package_name_from_match_spec(d: &str) -> &str {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use rstest::rstest;
 

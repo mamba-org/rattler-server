@@ -26,6 +26,10 @@ tracing-tree = "0.2.2"
 clap = { version = "4.1.8", features = ["derive", "env"] }
 
 [dev-dependencies]
+hyper = "0.14.24"
+mime = "0.3.16"
 mock_instant = "0.2.1"
+mockito = "0.32.4"
 rstest = "0.16.0"
 serde_json = "1.0.68"
+tower = "0.4.13"

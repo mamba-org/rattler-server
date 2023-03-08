@@ -3,6 +3,7 @@
 use rattler_conda_types::RepoDataRecord;
 use serde::{Deserialize, Serialize};
 
+#[cfg_attr(test, derive(Serialize))]
 #[derive(Debug, Deserialize)]
 pub struct SolveEnvironment {
     pub name: String,
@@ -12,6 +13,7 @@ pub struct SolveEnvironment {
     pub channels: Vec<String>,
 }
 
+#[cfg_attr(test, derive(Deserialize))]
 #[derive(Serialize)]
 pub struct SolveEnvironmentOk {
     pub packages: Vec<RepoDataRecord>,
