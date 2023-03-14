@@ -9,7 +9,7 @@ async-compression = { version = "0.3.15", features = ["tokio", "bzip2", "zstd"] 
 axum = { version = "0.6.6", features = ["json"] }
 clap = { version = "4.1.8", features = ["derive", "env"] }
 dashmap = "5.4.0"
-futures = "0.3.26"
+futures = "0.3.27"
 rattler_conda_types = { git = "https://github.com/mamba-org/rattler", branch = "main" }
 rattler_repodata_gateway = { git = "https://github.com/mamba-org/rattler", branch = "main" }
 rattler_solve = { git = "https://github.com/mamba-org/rattler", branch = "main" }
