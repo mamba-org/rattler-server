@@ -11,9 +11,9 @@ axum = {version="0.6.6", features=["json"]}
 serde = {version="1.0.152", features=["derive"]}
 serde_json = "1.0.68"
 tokio = {version="1.25.0", features=["full"]}
-rattler_solve = {git="https://github.com/aochagavia/rattler.git", branch="libsolv-errors"}
-rattler_conda_types = {git="https://github.com/aochagavia/rattler.git", branch="libsolv-errors"}
-rattler_repodata_gateway = {git="https://github.com/aochagavia/rattler.git", branch="libsolv-errors"}
+rattler_solve = { git = "https://github.com/mamba-org/rattler", rev = "2b6d3cfa867ec831da14d1e7dfc8e7865899ec01" }
+rattler_conda_types = { git = "https://github.com/mamba-org/rattler", rev = "2b6d3cfa867ec831da14d1e7dfc8e7865899ec01" }
+rattler_repodata_gateway = { git = "https://github.com/mamba-org/rattler", rev = "2b6d3cfa867ec831da14d1e7dfc8e7865899ec01" }
 futures = "0.3.26"
 reqwest = "0.11.14"
 dashmap = "5.4.0"
