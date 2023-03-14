@@ -63,14 +63,12 @@ async fn stream_and_decode_to_memory(
     .instrument(span!(Level::DEBUG, "download repodata.json"))
     .await?;
 
-    let result = tokio::task::spawn_blocking(move || {
+    tokio::task::spawn_blocking(move || {
         let repodata: RepoData = serde_json::from_slice(&json_bytes)?;
         Ok(repodata.into_repo_data_records(&channel))
     })
     .instrument(span!(Level::DEBUG, "parse repodata.json"))
-    .await?;
-
-    result
+    .await?
 }
 
 enum Encoding {
