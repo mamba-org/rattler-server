@@ -3,27 +3,25 @@ name = "rattler-server"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 anyhow = "1.0.69"
-axum = {version="0.6.6", features=["json"]}
-serde = {version="1.0.152", features=["derive"]}
-serde_json = "1.0.68"
-tokio = {version="1.25.0", features=["full"]}
-rattler_solve = { git = "https://github.com/mamba-org/rattler", rev = "2b6d3cfa867ec831da14d1e7dfc8e7865899ec01" }
-rattler_conda_types = { git = "https://github.com/mamba-org/rattler", rev = "2b6d3cfa867ec831da14d1e7dfc8e7865899ec01" }
-rattler_repodata_gateway = { git = "https://github.com/mamba-org/rattler", rev = "2b6d3cfa867ec831da14d1e7dfc8e7865899ec01" }
-futures = "0.3.26"
-reqwest = "0.11.14"
-dashmap = "5.4.0"
-tokio-util = {version="0.7.7", features=["io"]}
-async-compression = {version="0.3.15", features=["tokio", "bzip2", "zstd"]}
-thiserror = "1.0.39"
-tracing = "0.1.37"
-tracing-subscriber = {version="0.3.16", features=["env-filter"]}
-tracing-tree = "0.2.2"
+async-compression = { version = "0.3.15", features = ["tokio", "bzip2", "zstd"] }
+axum = { version = "0.6.6", features = ["json"] }
 clap = { version = "4.1.8", features = ["derive", "env"] }
+dashmap = "5.4.0"
+futures = "0.3.26"
+rattler_conda_types = { git = "https://github.com/mamba-org/rattler", branch = "main" }
+rattler_repodata_gateway = { git = "https://github.com/mamba-org/rattler", branch = "main" }
+rattler_solve = { git = "https://github.com/mamba-org/rattler", branch = "main" }
+reqwest = "0.11.14"
+serde = { version = "1.0.152", features = ["derive"] }
+serde_json = "1.0.68"
+thiserror = "1.0.39"
+tokio = { version = "1.25.0", features = ["full"] }
+tokio-util = { version = "0.7.7", features = ["io"] }
+tracing = "0.1.37"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+tracing-tree = "0.2.2"
 
 [dev-dependencies]
 hyper = "0.14.24"
