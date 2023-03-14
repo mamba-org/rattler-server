@@ -80,8 +80,14 @@ enum Encoding {
 
 #[tracing::instrument(level = Level::DEBUG, skip(client))]
 async fn get_repodata_url(client: &Client, subdir_url: &Url) -> (Url, Option<Encoding>) {
-    let variant_availability =
-        rattler_repodata_gateway::fetch::check_variant_availability(client, subdir_url, None).await;
+    let variant = rattler_repodata_gateway::fetch::Variant::AfterPatches;
+    let variant_availability = rattler_repodata_gateway::fetch::check_variant_availability(
+        client,
+        subdir_url,
+        None,
+        variant.file_name(),
+    )
+    .await;
 
     let has_zst = variant_availability.has_zst();
     let has_bz2 = variant_availability.has_bz2();

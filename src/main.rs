@@ -20,7 +20,7 @@ use futures::{StreamExt, TryStreamExt};
 use rattler_conda_types::{
     Channel, ChannelConfig, GenericVirtualPackage, MatchSpec, Platform, RepoDataRecord,
 };
-use rattler_solve::{LibsolvBackend, SolverBackend, SolverProblem};
+use rattler_solve::{LibsolvBackend, SolverBackend, SolverTask};
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -61,6 +61,8 @@ async fn main() -> anyhow::Result<()> {
     tokio::spawn(cache_gc_task(state.clone()));
 
     let app = app(state);
+
+    tracing::info!("Listening on http://localhost:{}", args.port);
     let addr = SocketAddr::from(([127, 0, 0, 1], args.port));
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
@@ -196,7 +198,7 @@ async fn solve_environment_inner(
             .iter()
             .map(|repodata| repodata.as_libsolv_repo_data())
             .collect();
-        let problem = SolverProblem {
+        let problem = SolverTask {
             available_packages: available_packages.into_iter(),
             virtual_packages,
             specs: matchspecs,
