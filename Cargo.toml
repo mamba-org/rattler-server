@@ -24,7 +24,7 @@ tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 tracing-tree = "0.2.2"
 
 [dev-dependencies]
-hyper = "0.14.24"
+hyper = "0.14.25"
 mime = "0.3.16"
 mock_instant = "0.2.1"
 mockito = "0.32.4"
