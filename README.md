@@ -3,14 +3,29 @@
 `rattler-server` is a single-purpose tool to resolve conda environments with a HTTP endpoint.
 The tool uses crates from the lower-level [`rattler`](https://github.com/mamba-org/rattler) libraries.
 
+If you want to learn more, join our [Discord!](https://discord.gg/c5gVKJpKGa).
+
 Features:
 
 * Written in Rust, memory safe and fast!
 * Uses axum for async, parallel request execution
 * Fast caching with libsolv and configurable cache lifetime
-* Uses the same package resolve algorithms as `mamba`
+* Uses the same package resolve algorithms as [`mamba`](https://github.com/mamba-org/mamba)
+
 
 ### The CLI interface
+
+If you clone this repository, you can run `rattler-server` by using
+
+```
+# run rattler-server on default port 3000
+cargo run
+
+# or to run on another port (3322)
+cargo run -- -p 3322
+```
+
+The full help text is as follows:
 
 ```
 Usage: rattler-server [OPTIONS]
@@ -47,7 +62,7 @@ It has a single endpoint (`/solve`) that accepts HTTP POST requests with the fol
 
 The server will reply with the solved, topologically sorted dependencies for that environment, e.g.:
 
-```json
+```json5
 {
   "packages": [
     {
