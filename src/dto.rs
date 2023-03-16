@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(test, derive(Serialize))]
 #[derive(Debug, Deserialize)]
 pub struct SolveEnvironment {
-    pub name: String,
+    pub name: Option<String>,
     pub platform: String,
     pub specs: Vec<String>,
     pub virtual_packages: Vec<String>,

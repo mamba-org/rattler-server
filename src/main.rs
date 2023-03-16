@@ -273,7 +273,7 @@ mod tests {
 
     fn default_solve_body() -> SolveEnvironment {
         SolveEnvironment {
-            name: "dummy".to_string(),
+            name: Some("dummy".to_string()),
             platform: "linux-64".to_string(),
             specs: Vec::new(),
             channels: vec!["conda-forge".to_string()],
