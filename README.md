@@ -60,7 +60,7 @@ It has a single endpoint (`/solve`) that accepts HTTP POST requests with the fol
 }
 ```
 
-The server will reply with the solved, topologically sorted dependencies for that environment, e.g.:
+If successful, the server will reply a HTTP 200 Response with the solved, topologically sorted dependencies for that environment as JSON, e.g.:
 
 ```json5
 {
@@ -103,6 +103,18 @@ The server will reply with the solved, topologically sorted dependencies for tha
       "channel": "https://conda.anaconda.org/conda-forge/"
     },
     // ... and many more
+  ]
+}
+```
+
+If you ask for an unsolvable environment (e.g. by using an old `__glibc=1.0=0` virtual package), a HTTP 409 response with the following content is returned:
+
+```json
+{
+  "error_kind": "solver",
+  "message": "no solution found for the specified dependencies",
+  "additional_info": [
+    "nothing provides __glibc >=2.17,<3.0.a0 needed by cudnn-8.2.0.53-h86fa8c9_0"
   ]
 }
 ```
