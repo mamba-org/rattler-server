@@ -47,7 +47,6 @@ It has a single endpoint (`/solve`) that accepts HTTP POST requests with the fol
 
 ```json
 {
-  "name": "<any name>",
   "specs": [
     "cudnn",
     "tensorflow-gpu"
