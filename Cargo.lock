@@ -1489,7 +1489,7 @@ dependencies = [
 [[package]]
 name = "rattler_conda_types"
 version = "0.1.0"
-source = "git+https://github.com/mamba-org/rattler?branch=main#945b28f5b7bf1bc0d1a0bb4f368690ae6f3629a4"
+source = "git+https://github.com/mamba-org/rattler?branch=main#421b568bfcf2805b3cf4a0a8eb355dc77b913feb"
 dependencies = [
  "fxhash",
  "glob",
@@ -1516,7 +1516,7 @@ dependencies = [
 [[package]]
 name = "rattler_digest"
 version = "0.1.0"
-source = "git+https://github.com/mamba-org/rattler?branch=main#945b28f5b7bf1bc0d1a0bb4f368690ae6f3629a4"
+source = "git+https://github.com/mamba-org/rattler?branch=main#421b568bfcf2805b3cf4a0a8eb355dc77b913feb"
 dependencies = [
  "digest",
  "hex",
@@ -1527,7 +1527,7 @@ dependencies = [
 [[package]]
 name = "rattler_repodata_gateway"
 version = "0.1.0"
-source = "git+https://github.com/mamba-org/rattler?branch=main#945b28f5b7bf1bc0d1a0bb4f368690ae6f3629a4"
+source = "git+https://github.com/mamba-org/rattler?branch=main#421b568bfcf2805b3cf4a0a8eb355dc77b913feb"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1556,7 +1556,7 @@ dependencies = [
 [[package]]
 name = "rattler_solve"
 version = "0.1.0"
-source = "git+https://github.com/mamba-org/rattler?branch=main#945b28f5b7bf1bc0d1a0bb4f368690ae6f3629a4"
+source = "git+https://github.com/mamba-org/rattler?branch=main#421b568bfcf2805b3cf4a0a8eb355dc77b913feb"
 dependencies = [
  "anyhow",
  "bindgen",
