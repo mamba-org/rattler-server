@@ -25,7 +25,7 @@ tracing-tree = "0.2.2"
 
 [dev-dependencies]
 hyper = "0.14.25"
-mime = "0.3.16"
+mime = "0.3.17"
 mock_instant = "0.2.1"
 mockito = "1.0.0"
 rstest = "0.17.0"
