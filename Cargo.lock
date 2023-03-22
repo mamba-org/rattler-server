@@ -1495,7 +1495,7 @@ dependencies = [
 [[package]]
 name = "rattler_conda_types"
 version = "0.1.0"
-source = "git+https://github.com/mamba-org/rattler?branch=main#421b568bfcf2805b3cf4a0a8eb355dc77b913feb"
+source = "git+https://github.com/mamba-org/rattler?branch=main#b24513836770c92bf130448b1146ca608a86c671"
 dependencies = [
  "fxhash",
  "glob",
@@ -1505,6 +1505,7 @@ dependencies = [
  "md-5",
  "nom",
  "rattler_digest",
+ "rattler_macros",
  "regex",
  "serde",
  "serde_json",
@@ -1522,7 +1523,7 @@ dependencies = [
 [[package]]
 name = "rattler_digest"
 version = "0.1.0"
-source = "git+https://github.com/mamba-org/rattler?branch=main#421b568bfcf2805b3cf4a0a8eb355dc77b913feb"
+source = "git+https://github.com/mamba-org/rattler?branch=main#b24513836770c92bf130448b1146ca608a86c671"
 dependencies = [
  "digest",
  "hex",
@@ -1531,9 +1532,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "rattler_macros"
+version = "0.1.0"
+source = "git+https://github.com/mamba-org/rattler?branch=main#b24513836770c92bf130448b1146ca608a86c671"
+dependencies = [
+ "quote",
+ "syn 2.0.5",
+]
+
+[[package]]
 name = "rattler_repodata_gateway"
 version = "0.1.0"
-source = "git+https://github.com/mamba-org/rattler?branch=main#421b568bfcf2805b3cf4a0a8eb355dc77b913feb"
+source = "git+https://github.com/mamba-org/rattler?branch=main#b24513836770c92bf130448b1146ca608a86c671"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1562,7 +1572,7 @@ dependencies = [
 [[package]]
 name = "rattler_solve"
 version = "0.1.0"
-source = "git+https://github.com/mamba-org/rattler?branch=main#421b568bfcf2805b3cf4a0a8eb355dc77b913feb"
+source = "git+https://github.com/mamba-org/rattler?branch=main#b24513836770c92bf130448b1146ca608a86c671"
 dependencies = [
  "anyhow",
  "bindgen",
@@ -1990,9 +2000,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.2"
+version = "2.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59d3276aee1fa0c33612917969b5172b5be2db051232a6e4826f1a1a9191b045"
+checksum = "89c2d1c76a26822187a1fbb5964e3fff108bc208f02e820ab9dac1234f6b388a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2044,7 +2054,7 @@ checksum = "f9456a42c5b0d803c8cd86e73dd7cc9edd429499f37a3550d286d5e86720569f"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.2",
+ "syn 2.0.5",
 ]
 
 [[package]]
