@@ -14,7 +14,7 @@ rattler_conda_types = { git = "https://github.com/mamba-org/rattler", branch = "
 rattler_repodata_gateway = { git = "https://github.com/mamba-org/rattler", branch = "main" }
 rattler_solve = { git = "https://github.com/mamba-org/rattler", branch = "main" }
 reqwest = "0.11.15"
-serde = { version = "1.0.156", features = ["derive"] }
+serde = { version = "1.0.157", features = ["derive"] }
 serde_json = "1.0.68"
 thiserror = "1.0.40"
 tokio = { version = "1.25.0", features = ["full"] }
