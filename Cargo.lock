@@ -1495,7 +1495,8 @@ dependencies = [
 [[package]]
 name = "rattler_conda_types"
 version = "0.1.0"
-source = "git+https://github.com/mamba-org/rattler?branch=main#421b568bfcf2805b3cf4a0a8eb355dc77b913feb"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "acaeac886143c83acdf72b437f97c43e0fc0bb8b24bc03921b1c3afe5d1f273d"
 dependencies = [
  "fxhash",
  "glob",
@@ -1522,7 +1523,8 @@ dependencies = [
 [[package]]
 name = "rattler_digest"
 version = "0.1.0"
-source = "git+https://github.com/mamba-org/rattler?branch=main#421b568bfcf2805b3cf4a0a8eb355dc77b913feb"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "728bb764f4094f8286a23da5b4e5d3f0f5739eb6e49a15aadb075dc97890aa34"
 dependencies = [
  "digest",
  "hex",
@@ -1533,7 +1535,8 @@ dependencies = [
 [[package]]
 name = "rattler_repodata_gateway"
 version = "0.1.0"
-source = "git+https://github.com/mamba-org/rattler?branch=main#421b568bfcf2805b3cf4a0a8eb355dc77b913feb"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "261a25b577aeddcffefca9fda027bb212124528e2a925f8a6200346bc1547a09"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1562,7 +1565,8 @@ dependencies = [
 [[package]]
 name = "rattler_solve"
 version = "0.1.0"
-source = "git+https://github.com/mamba-org/rattler?branch=main#421b568bfcf2805b3cf4a0a8eb355dc77b913feb"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac467bd27d50ae7e29d747f4800fc3e1a965c03fb1f0dc361d36afe44e1b23d7"
 dependencies = [
  "anyhow",
  "bindgen",
@@ -1772,22 +1776,22 @@ checksum = "58bc9567378fc7690d6b2addae4e60ac2eeea07becb2c64b9f218b53865cba2a"
 
 [[package]]
 name = "serde"
-version = "1.0.156"
+version = "1.0.158"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "314b5b092c0ade17c00142951e50ced110ec27cea304b1037c6969246c2469a4"
+checksum = "771d4d9c4163ee138805e12c710dd365e4f44be8be0503cb1bb9eb989425d9c9"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.156"
+version = "1.0.158"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7e29c4601e36bcec74a223228dce795f4cd3616341a4af93520ca1a837c087d"
+checksum = "e801c1712f48475582b7696ac71e0ca34ebb30e09338425384269d9717c62cad"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.5",
 ]
 
 [[package]]
@@ -1990,9 +1994,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.2"
+version = "2.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59d3276aee1fa0c33612917969b5172b5be2db051232a6e4826f1a1a9191b045"
+checksum = "89c2d1c76a26822187a1fbb5964e3fff108bc208f02e820ab9dac1234f6b388a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2044,7 +2048,7 @@ checksum = "f9456a42c5b0d803c8cd86e73dd7cc9edd429499f37a3550d286d5e86720569f"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.2",
+ "syn 2.0.5",
 ]
 
 [[package]]
