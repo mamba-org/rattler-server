@@ -1,3 +1,3 @@
 #!/usr/bin/env sh
 
-apk add libclang
+apk add clang-dev
