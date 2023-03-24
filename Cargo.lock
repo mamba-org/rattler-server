@@ -1443,8 +1443,9 @@ dependencies = [
 
 [[package]]
 name = "rattler_conda_types"
-version = "0.1.0"
-source = "git+https://github.com/baszalmstra/rattler?branch=feat/remove_runtime_bindgen#3e67b24ef3845575a191eceb14e02ceec5111e7d"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc487671ea7e2472ca9a237a35056e3e56e55346a180877dcf1e2c3b1d82627f"
 dependencies = [
  "fxhash",
  "glob",
@@ -1471,8 +1472,9 @@ dependencies = [
 
 [[package]]
 name = "rattler_digest"
-version = "0.1.0"
-source = "git+https://github.com/baszalmstra/rattler?branch=feat/remove_runtime_bindgen#3e67b24ef3845575a191eceb14e02ceec5111e7d"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c27ec7ef5421448f94228cb1aec5f4dc04b62d9cf9e22bca1b78a74d975eda8"
 dependencies = [
  "digest",
  "hex",
@@ -1482,8 +1484,9 @@ dependencies = [
 
 [[package]]
 name = "rattler_macros"
-version = "0.1.0"
-source = "git+https://github.com/baszalmstra/rattler?branch=feat/remove_runtime_bindgen#3e67b24ef3845575a191eceb14e02ceec5111e7d"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c986651122c1dc34285c15cbdeecb815d9e195866ff97a72c3cf77f3e1cbc9c1"
 dependencies = [
  "quote",
  "syn 2.0.5",
@@ -1491,8 +1494,9 @@ dependencies = [
 
 [[package]]
 name = "rattler_repodata_gateway"
-version = "0.1.0"
-source = "git+https://github.com/baszalmstra/rattler?branch=feat/remove_runtime_bindgen#3e67b24ef3845575a191eceb14e02ceec5111e7d"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29e167d99d972a7853a1e687cdca4842db3e184fd61cd391457b903f297bac51"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1520,8 +1524,9 @@ dependencies = [
 
 [[package]]
 name = "rattler_solve"
-version = "0.1.0"
-source = "git+https://github.com/baszalmstra/rattler?branch=feat/remove_runtime_bindgen#3e67b24ef3845575a191eceb14e02ceec5111e7d"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3fb278bcd2726a04f6fb92d63e637c41f639ece19efd53d65ef891b05718db1"
 dependencies = [
  "anyhow",
  "cc",
