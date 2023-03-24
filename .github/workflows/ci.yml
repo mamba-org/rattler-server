@@ -108,6 +108,17 @@ jobs:
           override: true
           profile: minimal # minimal component installation (ie, no documentation)
 
+      - name: Install cross
+        if: matrix.job.use-cross
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - name: Overwrite build command env variable
+        if: matrix.job.use-cross
+        shell: bash
+        run: echo "BUILD_CMD=cross" >> $GITHUB_ENV
+
       - name: Show version information (Rust, cargo, GCC)
         shell: bash
         run: |
