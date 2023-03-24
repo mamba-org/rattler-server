@@ -1,15 +1,96 @@
 on:
-  release:
-    types: [ created ]
+  pull_request:
   push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+
+name: Continuous integration
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
+  RUST_LOG: info
+  RUST_BACKTRACE: 1
+  RUSTFLAGS: "-D warnings"
+  CARGO_TERM_COLOR: always
   CICD_INTERMEDIATES_DIR: "_cicd-intermediates"
 
 jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+      - uses: actions-rs/cargo@v1
+        with:
+          command: check
+
+  test:
+    name: Test Suite
+    runs-on: ${{ matrix.os }}
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ "ubuntu-latest", "macOS-latest" ]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          # The tests require data that is stored in LFS
+          lfs: true
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features -- --nocapture
+
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+      - run: rustup component add rustfmt
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          components: clippy
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features -- -D warnings
+
   build:
     name: ${{ matrix.job.target }} (${{ matrix.job.os }})
     runs-on: ${{ matrix.job.os }}
+    needs: test
     strategy:
       fail-fast: false
       matrix:
@@ -80,7 +161,7 @@ jobs:
           case ${{ matrix.job.target }} in
           *-pc-windows-*) EXE_suffix=".exe" ;;
           esac;
-          
+
           # Figure out what strip tool to use if any
           STRIP="strip"
           case ${{ matrix.job.target }} in
@@ -88,21 +169,21 @@ jobs:
           aarch64-unknown-linux-gnu) STRIP="aarch64-linux-gnu-strip" ;;
           *-pc-windows-msvc) STRIP="" ;;
           esac;
-          
+
           # Setup paths
           BIN_DIR="${{ env.CICD_INTERMEDIATES_DIR }}/stripped-release-bin/"
           mkdir -p "${BIN_DIR}"
           BIN_NAME="${{ env.PROJECT_NAME }}${EXE_suffix}"
           BIN_PATH="${BIN_DIR}/${BIN_NAME}"
-          
+
           # Copy the release build binary to the result location
           cp "target/${{ matrix.job.target }}/release/${BIN_NAME}" "${BIN_DIR}"
-          
+
           # Also strip if possible
           if [ -n "${STRIP}" ]; then
           "${STRIP}" "${BIN_PATH}"
           fi
-          
+
           # Let subsequent steps know where to find the (stripped) bin
           echo "BIN_PATH=${BIN_PATH}" >> $GITHUB_OUTPUT
           echo "BIN_NAME=${BIN_NAME}" >> $GITHUB_OUTPUT
@@ -115,24 +196,24 @@ jobs:
           PKG_BASENAME=${PROJECT_NAME}-v${PROJECT_VERSION}-${{ matrix.job.target }}
           PKG_NAME=${PKG_BASENAME}${PKG_suffix}
           echo "PKG_NAME=${PKG_NAME}" >> $GITHUB_OUTPUT
-          
+
           PKG_STAGING="${{ env.CICD_INTERMEDIATES_DIR }}/package"
           ARCHIVE_DIR="${PKG_STAGING}/${PKG_BASENAME}/"
           mkdir -p "${ARCHIVE_DIR}"
           # mkdir -p "${ARCHIVE_DIR}/autocomplete"
-          
+
           # Binary
           cp "${{ steps.strip.outputs.BIN_PATH }}" "$ARCHIVE_DIR"
-          
+
           # README, LICENSE and CHANGELOG files
           cp "README.md" "LICENSE" "$ARCHIVE_DIR"
-          
+
           # Autocompletion files
           # cp 'target/${{ matrix.job.target }}/release/build/${{ env.PROJECT_NAME }}'-*/out/assets/completions/bat.bash "$ARCHIVE_DIR/autocomplete/${{ env.PROJECT_NAME }}.bash"
           # cp 'target/${{ matrix.job.target }}/release/build/${{ env.PROJECT_NAME }}'-*/out/assets/completions/bat.fish "$ARCHIVE_DIR/autocomplete/${{ env.PROJECT_NAME }}.fish"
           # cp 'target/${{ matrix.job.target }}/release/build/${{ env.PROJECT_NAME }}'-*/out/assets/completions/_bat.ps1 "$ARCHIVE_DIR/autocomplete/_${{ env.PROJECT_NAME }}.ps1"
           # cp 'target/${{ matrix.job.target }}/release/build/${{ env.PROJECT_NAME }}'-*/out/assets/completions/bat.zsh "$ARCHIVE_DIR/autocomplete/${{ env.PROJECT_NAME }}.zsh"
-          
+
           # base compressed package
           pushd "${PKG_STAGING}/" >/dev/null
           case ${{ matrix.job.target }} in
@@ -140,7 +221,7 @@ jobs:
             *) tar czf "${PKG_NAME}" "${PKG_BASENAME}"/* ;;
           esac;
           popd >/dev/null
-          
+
           # Let subsequent steps know where to find the compressed package
           echo PKG_PATH="${PKG_STAGING}/${PKG_NAME}" >> $GITHUB_OUTPUT
 
