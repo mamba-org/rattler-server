@@ -25,8 +25,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          submodules: recursive
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -39,8 +37,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          submodules: recursive
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -54,8 +50,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          submodules: recursive
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -68,6 +62,7 @@ jobs:
   build:
     name: ${{ matrix.job.target }} (${{ matrix.job.os }})
     runs-on: ${{ matrix.job.os }}
+    needs: check
     strategy:
       fail-fast: false
       matrix:
@@ -95,6 +90,7 @@ jobs:
           case ${{ matrix.job.target }} in
             arm-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y install gcc-arm-linux-gnueabihf ;;
             aarch64-unknown-linux-gnu) sudo apt-get -y update ; sudo apt-get -y install gcc-aarch64-linux-gnu ;;
+            x86_64-unknown-linux-gnu) sudo apt-get -y update ; sudo apt-get -y install libssl-dev ;;
             *-musl) sudo apt-get -y update ; sudo apt-get -y install musl-tools; sudo ln -s /bin/g++ /bin/musl-g++  ;;
           esac
 
