@@ -41,7 +41,7 @@ jobs:
         uses: houseabsolute/actions-rust-cross@v0
         with:
           target: ${{ matrix.platform.target }}
-          args: "--locked --release"
+          args: "--locked --release --features rustls-tls"
           strip: true
       - name: Package as archive
         shell: bash
