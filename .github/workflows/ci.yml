@@ -124,12 +124,23 @@ jobs:
           cargo -V
           rustc -V
 
+      - name: Set build options
+        id: build-options
+        shell: bash
+        run: |
+          unset CARGO_BUILD_OPTIONS
+          case ${{ matrix.job.target }} in
+            *-musl) CARGO_BUILD_OPTIONS="--no-default-features --features rustls-tls"  ;;
+            *) CARGO_BUILD_OPTIONS=""  ;;
+          esac
+          echo "CARGO_BUILD_OPTIONS=${CARGO_BUILD_OPTIONS}" >> $GITHUB_OUTPUT
+
       - name: Build
         uses: actions-rs/cargo@v1
         with:
           use-cross: ${{ matrix.job.use-cross }}
           command: build
-          args: --locked --release --target=${{ matrix.job.target }} --no-default-features --features rustls-tls
+          args: --locked --release --target=${{ matrix.job.target }} ${{ steps.build-options.outputs.CARGO_BUILD_OPTIONS}}
 
       - name: Strip debug information from executable
         id: strip
@@ -178,7 +189,7 @@ jobs:
 
       - name: Run tests
         shell: bash
-        run: $BUILD_CMD test --locked --target=${{ matrix.job.target }} ${{ steps.test-options.outputs.CARGO_TEST_OPTIONS}}
+        run: $BUILD_CMD test --locked --target=${{ matrix.job.target }} ${{ steps.build-options.outputs.CARGO_BUILD_OPTIONS}} ${{ steps.test-options.outputs.CARGO_TEST_OPTIONS}}
 
       - name: Create tarball
         id: package
