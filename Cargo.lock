@@ -1505,7 +1505,7 @@ dependencies = [
  "lazy-regex",
  "md-5",
  "nom",
- "rattler_digest",
+ "rattler_digest 0.1.0",
  "regex",
  "serde",
  "serde_json",
@@ -1529,14 +1529,24 @@ dependencies = [
  "digest",
  "hex",
  "serde",
+]
+
+[[package]]
+name = "rattler_digest"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c27ec7ef5421448f94228cb1aec5f4dc04b62d9cf9e22bca1b78a74d975eda8"
+dependencies = [
+ "digest",
+ "hex",
  "tokio",
 ]
 
 [[package]]
 name = "rattler_repodata_gateway"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "261a25b577aeddcffefca9fda027bb212124528e2a925f8a6200346bc1547a09"
+checksum = "29e167d99d972a7853a1e687cdca4842db3e184fd61cd391457b903f297bac51"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1549,7 +1559,7 @@ dependencies = [
  "libc",
  "md-5",
  "pin-project-lite",
- "rattler_digest",
+ "rattler_digest 0.2.0",
  "reqwest",
  "serde",
  "serde_json",
