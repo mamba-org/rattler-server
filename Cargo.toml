@@ -10,7 +10,7 @@ axum = { version = "0.6.12", features = ["json"] }
 clap = { version = "4.1.11", features = ["derive", "env"] }
 dashmap = "5.4.0"
 futures = "0.3.27"
-rattler_conda_types = "0.1.0"
+rattler_conda_types = "0.2.0"
 rattler_repodata_gateway = "0.1.0"
 rattler_solve = "0.1.0"
 reqwest = "0.11.16"

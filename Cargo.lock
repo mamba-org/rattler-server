@@ -1476,7 +1476,7 @@ dependencies = [
  "mime",
  "mock_instant",
  "mockito",
- "rattler_conda_types",
+ "rattler_conda_types 0.2.0",
  "rattler_repodata_gateway",
  "rattler_solve",
  "reqwest",
@@ -1505,7 +1505,36 @@ dependencies = [
  "lazy-regex",
  "md-5",
  "nom",
- "rattler_digest",
+ "rattler_digest 0.1.0",
+ "regex",
+ "serde",
+ "serde_json",
+ "serde_repr",
+ "serde_with",
+ "serde_yaml",
+ "sha2",
+ "smallvec",
+ "strum",
+ "thiserror",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "rattler_conda_types"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc487671ea7e2472ca9a237a35056e3e56e55346a180877dcf1e2c3b1d82627f"
+dependencies = [
+ "fxhash",
+ "glob",
+ "hex",
+ "itertools",
+ "lazy-regex",
+ "md-5",
+ "nom",
+ "rattler_digest 0.2.0",
+ "rattler_macros",
  "regex",
  "serde",
  "serde_json",
@@ -1533,6 +1562,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "rattler_digest"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c27ec7ef5421448f94228cb1aec5f4dc04b62d9cf9e22bca1b78a74d975eda8"
+dependencies = [
+ "digest",
+ "hex",
+ "serde",
+]
+
+[[package]]
+name = "rattler_macros"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c986651122c1dc34285c15cbdeecb815d9e195866ff97a72c3cf77f3e1cbc9c1"
+dependencies = [
+ "quote",
+ "syn 2.0.5",
+]
+
+[[package]]
 name = "rattler_repodata_gateway"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1549,7 +1599,7 @@ dependencies = [
  "libc",
  "md-5",
  "pin-project-lite",
- "rattler_digest",
+ "rattler_digest 0.1.0",
  "reqwest",
  "serde",
  "serde_json",
@@ -1575,7 +1625,7 @@ dependencies = [
  "hex",
  "libc",
  "libz-sys",
- "rattler_conda_types",
+ "rattler_conda_types 0.1.0",
  "serde",
  "tempfile",
  "thiserror",
