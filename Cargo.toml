@@ -15,7 +15,7 @@ rattler_repodata_gateway = "0.1.0"
 rattler_solve = "0.1.0"
 reqwest = "0.11.16"
 serde = { version = "1.0.158", features = ["derive"] }
-serde_json = "1.0.68"
+serde_json = "1.0.95"
 thiserror = "1.0.40"
 tokio = { version = "1.27.0", features = ["full"] }
 tokio-util = { version = "0.7.7", features = ["io"] }
@@ -29,5 +29,5 @@ mime = "0.3.17"
 mock_instant = "0.2.1"
 mockito = "1.0.0"
 rstest = "0.17.0"
-serde_json = "1.0.68"
+serde_json = "1.0.95"
 tower = "0.4.13"
