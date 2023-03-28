@@ -18,11 +18,11 @@ futures = "0.3.27"
 rattler_conda_types = "0.2.0"
 rattler_repodata_gateway = "0.2.0"
 rattler_solve = "0.2.0"
-reqwest = { version = "0.11.15", default-features = false }
-serde = { version = "1.0.158", features = ["derive"] }
-serde_json = "1.0.68"
+reqwest = { version = "0.11.16", default-features = false }
+serde = { version = "1.0.159", features = ["derive"] }
+serde_json = "1.0.95"
 thiserror = "1.0.40"
-tokio = { version = "1.25.0", features = ["full"] }
+tokio = { version = "1.27.0", features = ["full"] }
 tokio-util = { version = "0.7.7", features = ["io"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
@@ -32,9 +32,9 @@ tracing-tree = "0.2.2"
 hyper = "0.14.25"
 mime = "0.3.17"
 mock_instant = "0.2.1"
-mockito = "1.0.0"
+mockito = "1.0.1"
 rstest = "0.17.0"
-serde_json = "1.0.68"
+serde_json = "1.0.95"
 tower = "0.4.13"
 
 [package.metadata.cross.target.x86_64-unknown-linux-gnu]
