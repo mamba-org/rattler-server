@@ -20,7 +20,7 @@ rattler_repodata_gateway = "0.2.0"
 rattler_solve = "0.2.0"
 reqwest = { version = "0.11.16", default-features = false }
 serde = { version = "1.0.160", features = ["derive"] }
-serde_json = "1.0.95"
+serde_json = "1.0.96"
 thiserror = "1.0.40"
 tokio = { version = "1.27.0", features = ["full"] }
 tokio-util = { version = "0.7.7", features = ["io"] }
@@ -34,7 +34,7 @@ mime = "0.3.17"
 mock_instant = "0.2.1"
 mockito = "1.0.2"
 rstest = "0.17.0"
-serde_json = "1.0.95"
+serde_json = "1.0.96"
 tower = "0.4.13"
 
 [package.metadata.cross.target.x86_64-unknown-linux-gnu]
