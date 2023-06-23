@@ -1,8 +1,9 @@
 use crate::error::ApiError;
 use anyhow::Context;
 use rattler_conda_types::{Channel, Platform, RepoDataRecord};
+use rattler_networking::AuthenticatedClient;
 use rattler_solve::{cache_libsolv_repodata, LibcByteSlice, LibsolvRepoData};
-use reqwest::{Client, Url};
+use reqwest::Url;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{span, Instrument, Level};
@@ -12,7 +13,7 @@ use crate::generic_cache::{GenericCache, GetCachedResult};
 /// Caches the available packages for (channel, platform) pairs
 pub struct AvailablePackagesCache {
     cache: GenericCache<Url, LibsolvOwnedRepoData>,
-    download_client: Client,
+    download_client: AuthenticatedClient,
 }
 
 impl AvailablePackagesCache {
@@ -20,7 +21,7 @@ impl AvailablePackagesCache {
     pub fn with_expiration(expiration: Duration) -> AvailablePackagesCache {
         AvailablePackagesCache {
             cache: GenericCache::with_expiration(expiration),
-            download_client: Client::new(),
+            download_client: AuthenticatedClient::default(),
         }
     }
 

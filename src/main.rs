@@ -1,13 +1,11 @@
 mod available_packages_cache;
 mod cli;
-mod dependency_graph;
 mod dto;
 mod error;
 mod fetch;
 mod generic_cache;
 
 use crate::cli::Args;
-use crate::dependency_graph::sort_topologically;
 use crate::dto::{SolveEnvironment, SolveEnvironmentOk};
 use crate::error::{response_from_error, ApiError, ParseError, ParseErrors, ValidationError};
 use anyhow::Context;
@@ -18,7 +16,8 @@ use axum::{routing::post, Json, Router};
 use clap::Parser;
 use futures::{StreamExt, TryStreamExt};
 use rattler_conda_types::{
-    Channel, ChannelConfig, GenericVirtualPackage, MatchSpec, Platform, RepoDataRecord,
+    Channel, ChannelConfig, GenericVirtualPackage, MatchSpec, PackageRecord, Platform,
+    RepoDataRecord,
 };
 use rattler_solve::{LibsolvBackend, SolverBackend, SolverTask};
 use std::net::SocketAddr;
@@ -213,7 +212,7 @@ async fn solve_environment_inner(
     .context("solver thread panicked")
     .map_err(ApiError::Internal)?;
 
-    Ok(sort_topologically(result?))
+    Ok(PackageRecord::sort_topologically(result?))
 }
 
 fn parse_virtual_package(virtual_package: &str) -> Result<GenericVirtualPackage, ParseError> {
