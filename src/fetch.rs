@@ -1,7 +1,8 @@
 use crate::error::ApiError;
 use futures::TryStreamExt;
 use rattler_conda_types::{Channel, RepoData, RepoDataRecord};
-use reqwest::{Client, Response, Url};
+use rattler_networking::AuthenticatedClient;
+use reqwest::{Response, Url};
 use tokio::io::AsyncReadExt;
 use tokio_util::io::StreamReader;
 use tracing::{span, Instrument, Level};
@@ -9,7 +10,7 @@ use tracing::{span, Instrument, Level};
 // Download and parse `repodata.json`
 #[tracing::instrument(level = Level::DEBUG, skip(client))]
 pub async fn get_repodata(
-    client: &Client,
+    client: &AuthenticatedClient,
     channel: &Channel,
     platform_url: Url,
 ) -> Result<Vec<RepoDataRecord>, ApiError> {
@@ -77,7 +78,10 @@ enum Encoding {
 }
 
 #[tracing::instrument(level = Level::DEBUG, skip(client))]
-async fn get_repodata_url(client: &Client, subdir_url: &Url) -> (Url, Option<Encoding>) {
+async fn get_repodata_url(
+    client: &AuthenticatedClient,
+    subdir_url: &Url,
+) -> (Url, Option<Encoding>) {
     let variant = rattler_repodata_gateway::fetch::Variant::AfterPatches;
     let variant_availability = rattler_repodata_gateway::fetch::check_variant_availability(
         client,
