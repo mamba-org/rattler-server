@@ -1854,9 +1854,9 @@ dependencies = [
 
 [[package]]
 name = "rattler_conda_types"
-version = "0.4.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4848fdc59a25a6dd3f6ad4a62c93f29a3364db6a7823bbe9e31953f5e51e343"
+checksum = "f202c664ca6b501e543f1a12d03d27ab26285fcbc53166fe9287c7ae5f8028db"
 dependencies = [
  "chrono",
  "fxhash",
@@ -1883,9 +1883,9 @@ dependencies = [
 
 [[package]]
 name = "rattler_digest"
-version = "0.4.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53e6d1e3833f3c10a0e6213acc5c194bf54b90702a9c9a2a906d42dea2aac1bb"
+checksum = "747c978f52c6a6509a6b06b60486436057f9aeb3c11ed47fd0b5c1e07bfcf783"
 dependencies = [
  "blake2",
  "digest",
@@ -1898,10 +1898,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "rattler_macros"
-version = "0.4.0"
+name = "rattler_libsolv_c"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecb4c69cb0feee83ee5506f616fc2c9adb35482e8735b5e6544b9bc70e80318b"
+checksum = "766c5631932fb8a6a5bff6377e3a22caa43b5cf7e24c2d665405ee7f707f8252"
+dependencies = [
+ "anyhow",
+ "cc",
+ "cfg-if",
+ "cmake",
+ "libc",
+ "libz-sys",
+]
+
+[[package]]
+name = "rattler_macros"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a43fc18bf4427ee1dcf7396ba78a61219753d5055ffdf3743ee247ae8cee5179"
 dependencies = [
  "quote",
  "syn 2.0.18",
@@ -1909,9 +1923,9 @@ dependencies = [
 
 [[package]]
 name = "rattler_networking"
-version = "0.4.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "977c40a419c4e8717d6341949971a488ed95eb0fa8a476db41fba3d00472827b"
+checksum = "7649c2ca21d6174df365a2284e9cf3d063b429727f931444a0b8357382a271a0"
 dependencies = [
  "anyhow",
  "dirs",
@@ -1927,9 +1941,9 @@ dependencies = [
 
 [[package]]
 name = "rattler_repodata_gateway"
-version = "0.4.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87d14b21bde13eed71d28a7a635aed987a792bdfb063c1d43b3554349ff213c9"
+checksum = "cea29ec9dac7481ed253f469b62043c6e7007de710cacbf129582eabf6d34a72"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1961,19 +1975,16 @@ dependencies = [
 
 [[package]]
 name = "rattler_solve"
-version = "0.4.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb0948c9846f45094d0e6e96b5b71ac3a933818869bbf555c855d17a004acf4f"
+checksum = "722ea56d9047a7fd3c2e66925481b14391b574736100bd6b12d3cabf60f3b37a"
 dependencies = [
  "anyhow",
- "cc",
- "cfg-if",
- "cmake",
  "hex",
  "libc",
- "libz-sys",
  "rattler_conda_types",
  "rattler_digest",
+ "rattler_libsolv_c",
  "serde",
  "tempfile",
  "thiserror",
