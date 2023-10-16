@@ -2,7 +2,7 @@ use crate::error::ApiError;
 use anyhow::Context;
 use rattler_conda_types::{Channel, Platform, RepoDataRecord};
 use rattler_networking::AuthenticatedClient;
-use rattler_solve::{cache_libsolv_repodata, LibcByteSlice, LibsolvRepoData};
+use rattler_solve::libsolv_c::{cache_repodata, LibcByteSlice, RepoData};
 use reqwest::Url;
 use std::sync::Arc;
 use std::time::Duration;
@@ -12,7 +12,7 @@ use crate::generic_cache::{GenericCache, GetCachedResult};
 
 /// Caches the available packages for (channel, platform) pairs
 pub struct AvailablePackagesCache {
-    cache: GenericCache<Url, LibsolvOwnedRepoData>,
+    cache: GenericCache<Url, OwnedRepoData>,
     download_client: AuthenticatedClient,
 }
 
@@ -36,7 +36,7 @@ impl AvailablePackagesCache {
         &self,
         channel: &Channel,
         platform: Platform,
-    ) -> Result<Arc<LibsolvOwnedRepoData>, ApiError> {
+    ) -> Result<Arc<OwnedRepoData>, ApiError> {
         let platform_url = channel.platform_url(platform);
         let write_token = match self.cache.get_cached(&platform_url).await {
             GetCachedResult::Found(repodata) => return Ok(repodata),
@@ -54,9 +54,8 @@ impl AvailablePackagesCache {
         // Create .solv (can block for seconds)
         let platform_url_clone = platform_url.clone();
         let owned_repodata = tokio::task::spawn_blocking(move || {
-            let solv_file =
-                cache_libsolv_repodata(platform_url_clone.to_string(), records.as_slice());
-            Arc::new(LibsolvOwnedRepoData { records, solv_file })
+            let solv_file = cache_repodata(platform_url_clone.to_string(), records.as_slice());
+            Arc::new(OwnedRepoData { records, solv_file })
         })
         .instrument(span!(Level::DEBUG, "cache_libsolv_repodata"))
         .await
@@ -71,16 +70,16 @@ impl AvailablePackagesCache {
 }
 
 /// Owned counterpart to `LibsolvRepoData`
-pub struct LibsolvOwnedRepoData {
+pub struct OwnedRepoData {
     records: Vec<RepoDataRecord>,
     solv_file: LibcByteSlice,
 }
 
-impl LibsolvOwnedRepoData {
+impl OwnedRepoData {
     /// Returns a [`LibsolvRepoData`], borrowed from this instance
-    pub fn as_libsolv_repo_data(&self) -> LibsolvRepoData {
-        LibsolvRepoData {
-            records: self.records.as_slice(),
+    pub fn as_repo_data(&self) -> RepoData {
+        RepoData {
+            records: self.records.iter().collect(),
             solv_file: Some(&self.solv_file),
         }
     }

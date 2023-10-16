@@ -19,7 +19,7 @@ use rattler_conda_types::{
     Channel, ChannelConfig, GenericVirtualPackage, MatchSpec, PackageRecord, Platform,
     RepoDataRecord,
 };
-use rattler_solve::{LibsolvBackend, SolverBackend, SolverTask};
+use rattler_solve::{libsolv_c::Solver, SolverImpl, SolverTask};
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -195,7 +195,7 @@ async fn solve_environment_inner(
     let result = tokio::task::spawn_blocking(move || {
         let available_packages: Vec<_> = available_packages
             .iter()
-            .map(|repodata| repodata.as_libsolv_repo_data())
+            .map(|repodata| repodata.as_repo_data())
             .collect();
         let problem = SolverTask {
             available_packages: available_packages.into_iter(),
@@ -205,7 +205,7 @@ async fn solve_environment_inner(
             pinned_packages: Vec::new(),
         };
 
-        LibsolvBackend.solve(problem)
+        Solver.solve(problem)
     })
     .instrument(span!(Level::DEBUG, "solve"))
     .await
