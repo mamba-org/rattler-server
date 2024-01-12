@@ -370,7 +370,7 @@ mod tests {
         let resolved_package_names: Vec<_> = body
             .packages
             .iter()
-            .map(|p| &p.package_record.name)
+            .map(|p| p.package_record.name.as_normalized())
             .collect();
         assert_eq!(resolved_package_names, vec!["foo", "bar"]);
     }

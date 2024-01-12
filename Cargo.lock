@@ -848,6 +848,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fslock"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04412b8935272e3a9bae6f48c7bfff74c2911f60525404edfdd28e49884c3bfb"
+dependencies = [
+ "libc",
+ "winapi",
+]
+
+[[package]]
 name = "futures"
 version = "0.3.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1532,6 +1542,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "netrc-rs"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea2970fbbc8c785e8246234a7bd004ed66cd1ed1a35ec73669a92545e419b836"
+
+[[package]]
 name = "nix"
 version = "0.26.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1772,6 +1788,50 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b2a4787296e9989611394c33f193f676704af1686e70b8f8033ab5ba9a35a94"
 
 [[package]]
+name = "phf"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ade2d8b8f33c7333b51bcf0428d37e217e9f32192ae4772156f65063b8ce03dc"
+dependencies = [
+ "phf_macros",
+ "phf_shared",
+]
+
+[[package]]
+name = "phf_generator"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48e4cc64c2ad9ebe670cb8fd69dd50ae301650392e81c05f9bfcb2d5bdbc24b0"
+dependencies = [
+ "phf_shared",
+ "rand",
+]
+
+[[package]]
+name = "phf_macros"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3444646e286606587e49f3bcf1679b8cef1dc2c5ecc29ddacaffc305180d464b"
+dependencies = [
+ "phf_generator",
+ "phf_shared",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.38",
+ "unicase",
+]
+
+[[package]]
+name = "phf_shared"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90fcb95eef784c2ac79119d1dd819e162b5da872ce6f3c3abe1e8ca1c082f72b"
+dependencies = [
+ "siphasher",
+ "unicase",
+]
+
+[[package]]
 name = "pin-project"
 version = "1.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1862,6 +1922,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "purl"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d153044e55fb5c0a6f0f0f974c3335d15a842263ba4b208d2656120fe530a5ab"
+dependencies = [
+ "hex",
+ "percent-encoding",
+ "phf",
+ "serde",
+ "smartstring",
+ "thiserror",
+ "unicase",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1933,9 +2008,9 @@ dependencies = [
 
 [[package]]
 name = "rattler_conda_types"
-version = "0.10.0"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0c641733ec2b6cbe690f08fc64f879ee10d6438c0a59aa3a05eebc14671af31"
+checksum = "8f81cdf3e555b80b32d63f5fc0ec3e5c99320652f7b90b08e0f8c1ab1b094f86"
 dependencies = [
  "chrono",
  "fxhash",
@@ -1945,11 +2020,11 @@ dependencies = [
  "itertools",
  "lazy-regex",
  "nom",
+ "purl",
  "rattler_digest",
  "rattler_macros",
  "regex",
  "serde",
- "serde-json-python-formatter",
  "serde_json",
  "serde_repr",
  "serde_with",
@@ -1963,9 +2038,9 @@ dependencies = [
 
 [[package]]
 name = "rattler_digest"
-version = "0.10.0"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d950befee212d04a2ba0a73aed99dfa41925d351130ce5e9da77635d950811f"
+checksum = "9f8416c751fc754ea9b2746221f288d0c69709c9102591696e44c07d86b2a2be"
 dependencies = [
  "blake2",
  "digest",
@@ -1979,9 +2054,9 @@ dependencies = [
 
 [[package]]
 name = "rattler_libsolv_c"
-version = "0.10.0"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eef6c687570d6c32c5738320087eda2796f268e7e95d6c1f46ead362337af2ae"
+checksum = "b13beda244596f2a91797ec2cb3579fccf14db5901b7d149347b3c404b35c31e"
 dependencies = [
  "anyhow",
  "cc",
@@ -1993,9 +2068,9 @@ dependencies = [
 
 [[package]]
 name = "rattler_macros"
-version = "0.10.0"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3496d67b4cd7cb3bb67df4d49bbe70e8710a1f5a9e8163f24ac05a5e7c248897"
+checksum = "c71db75e7824b31576fd65ba525d375813930cc3a2d57a50f53d974480287523"
 dependencies = [
  "quote",
  "syn 2.0.38",
@@ -2003,29 +2078,34 @@ dependencies = [
 
 [[package]]
 name = "rattler_networking"
-version = "0.10.0"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e29cbcbe396a6fa69c9857a5d8015f995caaad2480d12e1220bd8033028b80a6"
+checksum = "855374d1dac084f0f13dd4ca8a52a8280f2995465861335059f101f600510965"
 dependencies = [
  "anyhow",
  "dirs",
+ "fslock",
  "getrandom",
+ "itertools",
  "keyring",
  "lazy_static",
  "libc",
+ "netrc-rs",
+ "once_cell",
  "reqwest",
  "retry-policies",
  "serde",
  "serde_json",
  "thiserror",
  "tracing",
+ "url",
 ]
 
 [[package]]
 name = "rattler_repodata_gateway"
-version = "0.10.0"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20e0640d706f5d32112fd8a876e235e780655e30dc4bb3939fe08d61dc534390"
+checksum = "e4a4587229250873222a1f41a242bba2f5096065b357b89e3dbccda9391de1eb"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -2057,9 +2137,9 @@ dependencies = [
 
 [[package]]
 name = "rattler_solve"
-version = "0.10.0"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31aab8d48384e1cb9eb3bc93f58c9b9666abb4f1a119884b62a7e26212ac78a3"
+checksum = "3cbc994f1f49005117b82669609e19d989f4ed8fe367e751bf58e07e79b41719"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2423,15 +2503,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde-json-python-formatter"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db62ee54077c67a8cff258c919175f0b3cb78d2b6dcafb0d166ff98dcb21aa5d"
-dependencies = [
- "serde_json",
-]
-
-[[package]]
 name = "serde_derive"
 version = "1.0.189"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2585,6 +2656,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "420acb44afdae038210c99e69aae24109f32f15500aa708e81d46c9f29d55fcf"
 
 [[package]]
+name = "siphasher"
+version = "0.3.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
+
+[[package]]
 name = "slab"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2600,6 +2677,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "942b4a808e05215192e39f4ab80813e599068285906cc91aa64f923db842bd5a"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "smartstring"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3fb72c633efbaa2dd666986505016c32c3044395ceaf881518399d2f4127ee29"
+dependencies = [
+ "autocfg",
+ "static_assertions",
+ "version_check",
 ]
 
 [[package]]
@@ -3015,6 +3103,15 @@ checksum = "ce65604324d3cce9b966701489fbd0cf318cb1f7bd9dd07ac9a4ee6fb791930d"
 dependencies = [
  "tempfile",
  "winapi",
+]
+
+[[package]]
+name = "unicase"
+version = "2.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7d2d4dafb69621809a81864c9c1b864479e1235c0dd4e199924b9742439ed89"
+dependencies = [
+ "version_check",
 ]
 
 [[package]]

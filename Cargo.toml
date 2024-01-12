@@ -5,8 +5,16 @@ edition = "2021"
 
 [features]
 default = ['native-tls']
-native-tls = ['reqwest/native-tls', 'rattler_networking/native-tls', 'rattler_repodata_gateway/native-tls']
-rustls-tls = ['reqwest/rustls-tls', 'rattler_networking/rustls-tls', 'rattler_repodata_gateway/rustls-tls']
+native-tls = [
+    'reqwest/native-tls',
+    'rattler_networking/native-tls',
+    'rattler_repodata_gateway/native-tls',
+]
+rustls-tls = [
+    'reqwest/rustls-tls',
+    'rattler_networking/rustls-tls',
+    'rattler_repodata_gateway/rustls-tls',
+]
 
 [dependencies]
 anyhow = "1.0.75"
@@ -15,10 +23,10 @@ axum = { version = "0.6.20", features = ["json"] }
 clap = { version = "4.4.6", features = ["derive", "env"] }
 dashmap = "5.5.3"
 futures = "0.3.28"
-rattler_conda_types = "0.10.0"
-rattler_repodata_gateway = { version = "0.10.0", default-features = false }
-rattler_networking = { version = "0.10.0", default-features = false }
-rattler_solve = "0.10.0"
+rattler_conda_types = "0.16.2"
+rattler_repodata_gateway = { version = "0.16.2", default-features = false }
+rattler_networking = { version = "0.16.2", default-features = false }
+rattler_solve = "0.16.2"
 reqwest = { version = "0.11.22", default-features = false }
 serde = { version = "1.0.189", features = ["derive"] }
 serde_json = "1.0.107"
@@ -41,5 +49,5 @@ tower = "0.4.13"
 [package.metadata.cross.target.x86_64-unknown-linux-gnu]
 pre-build = [
     "dpkg --add-architecture $CROSS_DEB_ARCH",
-    "apt-get update && apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH"
+    "apt-get update && apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH",
 ]
