@@ -20,7 +20,7 @@ use rattler_conda_types::{
     RepoDataRecord,
 };
 use rattler_solve::{libsolv_c::Solver, SolverImpl, SolverTask};
-use std::net::SocketAddr;
+
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -61,11 +61,9 @@ async fn main() -> anyhow::Result<()> {
 
     let app = app(state);
 
-    tracing::info!("Listening on http://localhost:{}", args.port);
-    let addr = SocketAddr::from(([127, 0, 0, 1], args.port));
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await?;
+    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", args.port)).await.unwrap();
+
+    axum::serve(listener, app.into_make_service()).await?;
 
     Ok(())
 }
@@ -314,8 +312,12 @@ mod tests {
     }
 
     async fn response_body(response: Response) -> String {
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-        String::from_utf8(body.to_vec()).unwrap()
+        let mut stream = response.into_body().into_data_stream();
+        let mut data = String::new();
+        while let Some(chunk) = stream.next().await {
+            data.push_str(&String::from_utf8_lossy(&chunk.unwrap()));
+        }
+        data
     }
 
     #[tokio::test]
