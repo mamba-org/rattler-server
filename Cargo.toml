@@ -2,6 +2,9 @@
 name = "rattler-server"
 version = "0.3.0"
 edition = "2021"
+description = "A server to solve conda environments with rattler"
+license = "Apache-2.0"
+readme = "README.md"
 
 [features]
 default = ['native-tls']
