@@ -16,7 +16,7 @@ use axum::{routing::post, Json, Router};
 use clap::Parser;
 use futures::{StreamExt, TryStreamExt};
 use rattler_conda_types::{
-    Channel, ChannelConfig, GenericVirtualPackage, MatchSpec, PackageRecord, Platform,
+    Channel, ChannelConfig, GenericVirtualPackage, MatchSpec, PackageName, PackageRecord, Platform,
     RepoDataRecord,
 };
 use rattler_solve::{libsolv_c::Solver, SolverImpl, SolverTask};
@@ -238,7 +238,10 @@ fn parse_virtual_package(virtual_package: &str) -> Result<GenericVirtualPackage,
     }
 
     Ok(GenericVirtualPackage {
-        name,
+        name: PackageName::try_from(name).map_err(|e| ParseError {
+            input: virtual_package.to_string(),
+            error: e.to_string(),
+        })?,
         version,
         build_string,
     })
@@ -367,7 +370,7 @@ mod tests {
         let resolved_package_names: Vec<_> = body
             .packages
             .iter()
-            .map(|p| &p.package_record.name)
+            .map(|p| p.package_record.name.as_normalized())
             .collect();
         assert_eq!(resolved_package_names, vec!["foo", "bar"]);
     }

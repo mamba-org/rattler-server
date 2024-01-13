@@ -125,6 +125,15 @@ pub fn response_from_error(api_error: ApiError) -> Response {
             }),
         )
             .into_response(),
+        ApiError::Solver(SolveError::ParseMatchSpecError(e)) => (
+            StatusCode::BAD_REQUEST,
+            Json(SolveEnvironmentErr {
+                error_kind: "validation".to_string(),
+                message: Some("invalid match spec".to_string()),
+                additional_info: Some(e.to_string()),
+            }),
+        )
+            .into_response(),
     }
 }
 

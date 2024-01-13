@@ -5,41 +5,49 @@ edition = "2021"
 
 [features]
 default = ['native-tls']
-native-tls = ['reqwest/native-tls', 'rattler_networking/native-tls', 'rattler_repodata_gateway/native-tls']
-rustls-tls = ['reqwest/rustls-tls', 'rattler_networking/rustls-tls', 'rattler_repodata_gateway/rustls-tls']
+native-tls = [
+    'reqwest/native-tls',
+    'rattler_networking/native-tls',
+    'rattler_repodata_gateway/native-tls',
+]
+rustls-tls = [
+    'reqwest/rustls-tls',
+    'rattler_networking/rustls-tls',
+    'rattler_repodata_gateway/rustls-tls',
+]
 
 [dependencies]
-anyhow = "1.0.71"
-async-compression = { version = "0.4.0", features = ["tokio", "bzip2", "zstd"] }
-axum = { version = "0.6.18", features = ["json"] }
-clap = { version = "4.3.5", features = ["derive", "env"] }
-dashmap = "5.4.0"
+anyhow = "1.0.75"
+async-compression = { version = "0.4.4", features = ["tokio", "bzip2", "zstd"] }
+axum = { version = "0.6.20", features = ["json"] }
+clap = { version = "4.4.6", features = ["derive", "env"] }
+dashmap = "5.5.3"
 futures = "0.3.28"
-rattler_conda_types = "0.6.0"
-rattler_repodata_gateway = { version = "0.6.0", default-features = false }
-rattler_networking = { version = "0.6.0", default-features = false }
-rattler_solve = "0.6.0"
-reqwest = { version = "0.11.18", default-features = false }
-serde = { version = "1.0.164", features = ["derive"] }
-serde_json = "1.0.97"
-thiserror = "1.0.40"
-tokio = { version = "1.28.2", features = ["full"] }
-tokio-util = { version = "0.7.8", features = ["io"] }
-tracing = "0.1.37"
+rattler_conda_types = "0.16.2"
+rattler_repodata_gateway = { version = "0.16.2", default-features = false }
+rattler_networking = { version = "0.16.2", default-features = false }
+rattler_solve = "0.16.2"
+reqwest = { version = "0.11.22", default-features = false }
+serde = { version = "1.0.189", features = ["derive"] }
+serde_json = "1.0.107"
+thiserror = "1.0.49"
+tokio = { version = "1.33.0", features = ["full"] }
+tokio-util = { version = "0.7.9", features = ["io"] }
+tracing = "0.1.39"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-tracing-tree = "0.2.3"
+tracing-tree = "0.2.5"
 
 [dev-dependencies]
-hyper = "0.14.26"
+hyper = "0.14.27"
 mime = "0.3.17"
 mock_instant = "0.3.1"
-mockito = "1.1.0"
-rstest = "0.17.0"
-serde_json = "1.0.97"
+mockito = "1.2.0"
+rstest = "0.18.2"
+serde_json = "1.0.107"
 tower = "0.4.13"
 
 [package.metadata.cross.target.x86_64-unknown-linux-gnu]
 pre-build = [
     "dpkg --add-architecture $CROSS_DEB_ARCH",
-    "apt-get update && apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH"
+    "apt-get update && apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH",
 ]
