@@ -2,7 +2,6 @@ mod available_packages_cache;
 mod cli;
 mod dto;
 mod error;
-mod fetch;
 mod generic_cache;
 
 use crate::cli::Args;
@@ -19,7 +18,7 @@ use rattler_conda_types::{
     Channel, ChannelConfig, GenericVirtualPackage, MatchSpec, PackageName, PackageRecord, Platform,
     RepoDataRecord,
 };
-use rattler_solve::{libsolv_c::Solver, SolverImpl, SolverTask};
+use rattler_solve::{resolvo::Solver, SolverImpl, SolverTask};
 
 use std::str::FromStr;
 use std::sync::Arc;
@@ -61,7 +60,9 @@ async fn main() -> anyhow::Result<()> {
 
     let app = app(state);
 
-    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", args.port)).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", args.port))
+        .await
+        .unwrap();
 
     axum::serve(listener, app.into_make_service()).await?;
 
@@ -191,12 +192,8 @@ async fn solve_environment_inner(
 
     // This call will block for hundreds of milliseconds, or longer
     let result = tokio::task::spawn_blocking(move || {
-        let available_packages: Vec<_> = available_packages
-            .iter()
-            .map(|repodata| repodata.as_repo_data())
-            .collect();
         let problem = SolverTask {
-            available_packages: available_packages.into_iter(),
+            available_packages: &available_packages,
             virtual_packages,
             specs: matchspecs,
             locked_packages: Vec::new(),

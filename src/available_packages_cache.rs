@@ -1,18 +1,18 @@
 use crate::error::ApiError;
 use anyhow::Context;
-use rattler_conda_types::{Channel, Platform, RepoDataRecord};
+use rattler_conda_types::{Channel, Platform, RepoData, RepoDataRecord};
 use rattler_networking::AuthenticatedClient;
-use rattler_solve::libsolv_c::{cache_repodata, LibcByteSlice, RepoData};
+use rattler_repodata_gateway::fetch;
 use reqwest::Url;
+use std::default::Default;
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::{span, Instrument, Level};
 
 use crate::generic_cache::{GenericCache, GetCachedResult};
 
 /// Caches the available packages for (channel, platform) pairs
 pub struct AvailablePackagesCache {
-    cache: GenericCache<Url, OwnedRepoData>,
+    cache: GenericCache<Url, Vec<RepoDataRecord>>,
     download_client: AuthenticatedClient,
 }
 
@@ -36,51 +36,37 @@ impl AvailablePackagesCache {
         &self,
         channel: &Channel,
         platform: Platform,
-    ) -> Result<Arc<OwnedRepoData>, ApiError> {
+    ) -> Result<Vec<RepoDataRecord>, ApiError> {
         let platform_url = channel.platform_url(platform);
         let write_token = match self.cache.get_cached(&platform_url).await {
-            GetCachedResult::Found(repodata) => return Ok(repodata),
+            GetCachedResult::Found(repodata) => return Ok(repodata.to_vec()),
             GetCachedResult::NotFound(write_guard) => write_guard,
         };
+        let cache_dir = dirs::cache_dir()
+            .context("reading cache directory")
+            .map_err(ApiError::Internal)?
+            .join("rattler/cache");
 
         // Download
-        let records = crate::fetch::get_repodata(
-            &self.download_client,
-            channel,
+        let result = fetch::fetch_repo_data(
             channel.platform_url(platform),
+            self.download_client.clone(),
+            cache_dir,
+            fetch::FetchRepoDataOptions {
+                ..Default::default()
+            },
+            None,
         )
-        .await?;
-
-        // Create .solv (can block for seconds)
-        let platform_url_clone = platform_url.clone();
-        let owned_repodata = tokio::task::spawn_blocking(move || {
-            let solv_file = cache_repodata(platform_url_clone.to_string(), records.as_slice());
-            Arc::new(OwnedRepoData { records, solv_file })
-        })
-        .instrument(span!(Level::DEBUG, "cache_libsolv_repodata"))
         .await
-        .context("panicked while creating .solv file")
-        .map_err(ApiError::Internal)?;
+        .map_err(|err| ApiError::FetchRepoDataJson(channel.platform_url(platform), err))?;
+
+        let repodata = RepoData::from_path(result.repo_data_json_path)
+            .context("loading repo data")
+            .map_err(ApiError::Internal)?
+            .into_repo_data_records(channel);
 
         // Update the cache
-        self.cache.set(write_token, owned_repodata.clone());
-
-        Ok(owned_repodata)
-    }
-}
-
-/// Owned counterpart to `LibsolvRepoData`
-pub struct OwnedRepoData {
-    records: Vec<RepoDataRecord>,
-    solv_file: LibcByteSlice,
-}
-
-impl OwnedRepoData {
-    /// Returns a [`LibsolvRepoData`], borrowed from this instance
-    pub fn as_repo_data(&self) -> RepoData {
-        RepoData {
-            records: self.records.iter().collect(),
-            solv_file: Some(&self.solv_file),
-        }
+        self.cache.set(write_token, Arc::new(repodata.clone()));
+        Result::Ok(repodata)
     }
 }
