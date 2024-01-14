@@ -7,6 +7,7 @@ use reqwest::Url;
 use std::default::Default;
 use std::sync::Arc;
 use std::time::Duration;
+use tracing::{span, Instrument, Level};
 
 use crate::generic_cache::{GenericCache, GetCachedResult};
 
@@ -57,6 +58,7 @@ impl AvailablePackagesCache {
             },
             None,
         )
+        .instrument(span!(Level::DEBUG, "fetch_repo_data"))
         .await
         .map_err(|err| ApiError::FetchRepoDataJson(channel.platform_url(platform), err))?;
 
