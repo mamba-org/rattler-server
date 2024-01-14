@@ -393,7 +393,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::CONFLICT);
         let body = response_body(response).await;
         assert!(
-            body.contains("nothing provides __unix needed by bar-1.2.3"),
+            body.contains("bar * cannot be installed because there are no viable options"),
             "Unexpected body!\n{body}"
         )
     }
