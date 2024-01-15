@@ -73,7 +73,10 @@ fn state_from_args(args: &Args) -> AppState {
     let cache_expiration = Duration::from_secs(args.repodata_cache_expiration_seconds);
 
     AppState {
-        available_packages: AvailablePackagesCache::with_expiration(cache_expiration),
+        available_packages: AvailablePackagesCache::new(
+            cache_expiration,
+            args.cache_dir.clone().into_std_path_buf(),
+        ),
         concurrent_repodata_downloads_per_request: args.concurrent_repodata_downloads_per_request,
         channel_config: ChannelConfig::default(),
     }
@@ -248,16 +251,21 @@ mod tests {
     use axum::body::Body;
     use axum::http;
     use axum::http::{header, Request, StatusCode};
+    use camino::Utf8PathBuf;
+    use mktemp::Temp;
     use mockito::{Mock, ServerGuard};
     use reqwest::Url;
     use tower::util::ServiceExt;
 
     async fn dummy_app() -> (ServerGuard, Router) {
+        let temp_dir = Temp::new_dir().unwrap();
+        let cache_dir = Utf8PathBuf::from_path_buf(temp_dir.to_path_buf()).unwrap();
         let mut state = state_from_args(&Args {
             concurrent_repodata_downloads_per_request: 1,
             repodata_cache_expiration_seconds: u64::MAX,
             // The port is ignored during testing
             port: 0,
+            cache_dir,
         });
 
         let mock_channel_server = mockito::Server::new_async().await;

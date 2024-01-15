@@ -39,6 +39,8 @@ tokio-util = { version = "0.7.10", features = ["io"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing-tree = "0.3.0"
+camino = "1.1.6"
+mktemp = "0.5.1"
 
 [dev-dependencies]
 hyper = "1.1.0"

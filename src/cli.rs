@@ -1,3 +1,4 @@
+use camino::Utf8PathBuf;
 use clap::Parser;
 
 #[derive(Parser)]
@@ -18,4 +19,13 @@ pub struct Args {
     /// The amount of seconds after which a cached repodata.json expires, defaults to 30 minutes.
     #[arg(short, default_value_t = 30 * 60, env = "RATTLER_SERVER_CACHE_EXPIRATION_SECONDS")]
     pub repodata_cache_expiration_seconds: u64,
+
+    #[arg(long, default_value_t = get_default_cache_dir(), env = "RATTLER_CACHE_DIR", value_hint = clap::ValueHint::DirPath)]
+    pub cache_dir: Utf8PathBuf,
+}
+
+fn get_default_cache_dir() -> Utf8PathBuf {
+    let mut path = dirs::cache_dir().unwrap();
+    path.push("rattler");
+    Utf8PathBuf::from_path_buf(path).unwrap()
 }

@@ -4,9 +4,9 @@ use rattler_conda_types::{Channel, Platform, RepoData, RepoDataRecord};
 use rattler_networking::AuthenticatedClient;
 use rattler_repodata_gateway::fetch;
 use reqwest::Url;
-use std::default::Default;
 use std::sync::Arc;
 use std::time::Duration;
+use std::{default::Default, path::PathBuf};
 use tracing::{span, Instrument, Level};
 
 use crate::generic_cache::{GenericCache, GetCachedResult};
@@ -14,15 +14,17 @@ use crate::generic_cache::{GenericCache, GetCachedResult};
 /// Caches the available packages for (channel, platform) pairs
 pub struct AvailablePackagesCache {
     cache: GenericCache<Url, Vec<RepoDataRecord>>,
+    cache_dir: PathBuf,
     download_client: AuthenticatedClient,
 }
 
 impl AvailablePackagesCache {
     /// Creates an empty `AvailablePackagesCache` with keys that expire after `expiration`
-    pub fn with_expiration(expiration: Duration) -> AvailablePackagesCache {
+    pub fn new(expiration: Duration, cache_dir: PathBuf) -> AvailablePackagesCache {
         AvailablePackagesCache {
             cache: GenericCache::with_expiration(expiration),
             download_client: AuthenticatedClient::default(),
+            cache_dir,
         }
     }
 
@@ -43,16 +45,12 @@ impl AvailablePackagesCache {
             GetCachedResult::Found(repodata) => return Ok(repodata.to_vec()),
             GetCachedResult::NotFound(write_guard) => write_guard,
         };
-        let cache_dir = dirs::cache_dir()
-            .context("reading cache directory")
-            .map_err(ApiError::Internal)?
-            .join("rattler/cache");
 
         // Download
         let result = fetch::fetch_repo_data(
             channel.platform_url(platform),
             self.download_client.clone(),
-            cache_dir,
+            self.cache_dir.clone(),
             fetch::FetchRepoDataOptions {
                 ..Default::default()
             },
