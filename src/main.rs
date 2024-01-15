@@ -61,7 +61,9 @@ async fn main() -> anyhow::Result<()> {
 
     let app = app(state);
 
-    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", args.port)).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", args.port))
+        .await
+        .unwrap();
 
     axum::serve(listener, app.into_make_service()).await?;
 
