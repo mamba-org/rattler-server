@@ -20,8 +20,20 @@ pub struct Args {
     #[arg(short, default_value_t = 30 * 60, env = "RATTLER_SERVER_CACHE_EXPIRATION_SECONDS")]
     pub repodata_cache_expiration_seconds: u64,
 
+    /// The directory to store cached repodata.json files in.
     #[arg(long, default_value_t = get_default_cache_dir(), env = "RATTLER_CACHE_DIR", value_hint = clap::ValueHint::DirPath)]
     pub cache_dir: Utf8PathBuf,
+
+    /// The solver implementation to use.
+    #[arg(long, value_enum, default_value_t, env = "RATTLER_SOLVER")]
+    pub solver: Solver,
+}
+
+#[derive(Clone, clap::ValueEnum, Default, Copy)]
+pub enum Solver {
+    #[default]
+    Resolvo,
+    Libsolvc,
 }
 
 fn get_default_cache_dir() -> Utf8PathBuf {

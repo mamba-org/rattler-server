@@ -29,6 +29,7 @@ rattler_repodata_gateway = { version = "0.16.2", default-features = false }
 rattler_networking = { version = "0.16.2", default-features = false }
 rattler_solve = { version = "0.16.2", default-features = false, features = [
     "resolvo",
+    "libsolv_c",
 ] }
 reqwest = { version = "0.11.23", default-features = false }
 serde = { version = "1.0.195", features = ["derive"] }

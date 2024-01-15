@@ -13,12 +13,13 @@ use axum::extract::State;
 use axum::response::{IntoResponse, Response};
 use axum::{routing::post, Json, Router};
 use clap::Parser;
+use cli::Solver;
 use futures::{StreamExt, TryStreamExt};
 use rattler_conda_types::{
     Channel, ChannelConfig, GenericVirtualPackage, MatchSpec, PackageName, PackageRecord, Platform,
     RepoDataRecord,
 };
-use rattler_solve::{resolvo::Solver, SolverImpl, SolverTask};
+use rattler_solve::{libsolv_c, resolvo, SolverImpl, SolverTask};
 
 use std::str::FromStr;
 use std::sync::Arc;
@@ -26,14 +27,15 @@ use std::time::Duration;
 use tracing::{span, Instrument, Level};
 use tracing_subscriber::fmt::format::{format, FmtSpan};
 
-struct AppState {
+struct AppState<Solver> {
     available_packages: AvailablePackagesCache,
     concurrent_repodata_downloads_per_request: usize,
     channel_config: ChannelConfig,
+    solver: Solver,
 }
 
 /// Checks the `AvailablePackagesCache` every minute to remove outdated entries
-async fn cache_gc_task(state: Arc<AppState>) {
+async fn cache_gc_task(state: Arc<AppState<Solver>>) {
     let mut interval_timer = tokio::time::interval(Duration::from_secs(60));
     loop {
         interval_timer.tick().await;
@@ -69,7 +71,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn state_from_args(args: &Args) -> AppState {
+fn state_from_args(args: &Args) -> AppState<Solver> {
     let cache_expiration = Duration::from_secs(args.repodata_cache_expiration_seconds);
 
     AppState {
@@ -79,10 +81,11 @@ fn state_from_args(args: &Args) -> AppState {
         ),
         concurrent_repodata_downloads_per_request: args.concurrent_repodata_downloads_per_request,
         channel_config: ChannelConfig::default(),
+        solver: args.solver,
     }
 }
 
-fn app(state: Arc<AppState>) -> Router {
+fn app(state: Arc<AppState<Solver>>) -> Router {
     Router::new()
         .route("/solve", post(solve_environment))
         .with_state(state)
@@ -90,7 +93,7 @@ fn app(state: Arc<AppState>) -> Router {
 
 #[tracing::instrument(level = "info", skip(state))]
 async fn solve_environment(
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState<Solver>>>,
     Json(payload): Json<SolveEnvironment>,
 ) -> Response {
     let result = solve_environment_inner(state, payload).await;
@@ -101,7 +104,7 @@ async fn solve_environment(
 }
 
 async fn solve_environment_inner(
-    state: Arc<AppState>,
+    state: Arc<AppState<Solver>>,
     payload: SolveEnvironment,
 ) -> Result<Vec<RepoDataRecord>, ApiError> {
     let root_span = span!(Level::TRACE, "solve_environment");
@@ -203,7 +206,10 @@ async fn solve_environment_inner(
             pinned_packages: Vec::new(),
         };
 
-        Solver.solve(problem)
+        match state.solver {
+            Solver::Resolvo => resolvo::Solver.solve(problem),
+            Solver::Libsolvc => libsolv_c::Solver.solve(problem),
+        }
     })
     .instrument(span!(Level::DEBUG, "solve"))
     .await
@@ -266,6 +272,7 @@ mod tests {
             // The port is ignored during testing
             port: 0,
             cache_dir,
+            solver: Solver::Resolvo,
         });
 
         let mock_channel_server = mockito::Server::new_async().await;
