@@ -20,7 +20,7 @@ rustls-tls = [
 anyhow = "1.0.79"
 async-compression = { version = "0.4.5", features = ["tokio", "bzip2", "zstd"] }
 axum = { version = "0.7.3", features = ["json"] }
-clap = { version = "4.4.16", features = ["derive", "env"] }
+clap = { version = "4.4.16", features = ["derive", "env", "string"] }
 dashmap = "5.5.3"
 dirs = "5.0.1"
 futures = "0.3.30"
@@ -40,7 +40,6 @@ tokio-util = { version = "0.7.10", features = ["io"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing-tree = "0.3.0"
-camino = "1.1.6"
 mktemp = "0.5.1"
 
 [dev-dependencies]

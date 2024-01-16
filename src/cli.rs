@@ -1,4 +1,5 @@
-use camino::Utf8PathBuf;
+use std::path::PathBuf;
+
 use clap::Parser;
 
 #[derive(Parser)]
@@ -21,8 +22,8 @@ pub struct Args {
     pub repodata_cache_expiration_seconds: u64,
 
     /// The directory to store cached repodata.json files in.
-    #[arg(long, default_value_t = get_default_cache_dir(), env = "RATTLER_CACHE_DIR", value_hint = clap::ValueHint::DirPath)]
-    pub cache_dir: Utf8PathBuf,
+    #[arg(long, default_value = get_default_cache_dir().into_os_string(), env = "RATTLER_CACHE_DIR", value_hint = clap::ValueHint::DirPath)]
+    pub cache_dir: PathBuf,
 
     /// The solver implementation to use.
     #[arg(long, value_enum, default_value_t, env = "RATTLER_SOLVER")]
@@ -36,8 +37,8 @@ pub enum Solver {
     Libsolvc,
 }
 
-fn get_default_cache_dir() -> Utf8PathBuf {
+fn get_default_cache_dir() -> PathBuf {
     let mut path = dirs::cache_dir().unwrap();
     path.push("rattler");
-    Utf8PathBuf::from_path_buf(path).unwrap()
+    path
 }

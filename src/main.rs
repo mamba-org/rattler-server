@@ -75,10 +75,7 @@ fn state_from_args(args: &Args) -> AppState<Solver> {
     let cache_expiration = Duration::from_secs(args.repodata_cache_expiration_seconds);
 
     AppState {
-        available_packages: AvailablePackagesCache::new(
-            cache_expiration,
-            args.cache_dir.clone().into_std_path_buf(),
-        ),
+        available_packages: AvailablePackagesCache::new(cache_expiration, args.cache_dir.clone()),
         concurrent_repodata_downloads_per_request: args.concurrent_repodata_downloads_per_request,
         channel_config: ChannelConfig::default(),
         solver: args.solver,
@@ -257,7 +254,6 @@ mod tests {
     use axum::body::Body;
     use axum::http;
     use axum::http::{header, Request, StatusCode};
-    use camino::Utf8PathBuf;
     use mktemp::Temp;
     use mockito::{Mock, ServerGuard};
     use reqwest::Url;
@@ -265,7 +261,7 @@ mod tests {
 
     async fn dummy_app() -> (ServerGuard, Router) {
         let temp_dir = Temp::new_dir().unwrap();
-        let cache_dir = Utf8PathBuf::from_path_buf(temp_dir.to_path_buf()).unwrap();
+        let cache_dir = temp_dir.to_path_buf();
         let mut state = state_from_args(&Args {
             concurrent_repodata_downloads_per_request: 1,
             repodata_cache_expiration_seconds: u64::MAX,
