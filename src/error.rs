@@ -4,6 +4,7 @@ use crate::dto::SolveEnvironmentErr;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
+use rattler_repodata_gateway::fetch::FetchRepoDataError;
 use rattler_solve::SolveError;
 use reqwest::Url;
 use serde::{Serialize, Serializer};
@@ -17,7 +18,7 @@ pub enum ApiError {
     #[error("validation error: {0}")]
     Validation(#[from] ValidationError),
     #[error("error fetching repodata.json from {}", .0.to_string())]
-    FetchRepoDataJson(Url, #[source] reqwest::Error),
+    FetchRepoDataJson(Url, #[source] FetchRepoDataError),
     #[error("solve error: {0}")]
     Solver(#[from] SolveError),
 }

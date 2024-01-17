@@ -2,7 +2,6 @@ mod available_packages_cache;
 mod cli;
 mod dto;
 mod error;
-mod fetch;
 mod generic_cache;
 
 use crate::cli::Args;
@@ -14,12 +13,13 @@ use axum::extract::State;
 use axum::response::{IntoResponse, Response};
 use axum::{routing::post, Json, Router};
 use clap::Parser;
+use cli::Solver;
 use futures::{StreamExt, TryStreamExt};
 use rattler_conda_types::{
     Channel, ChannelConfig, GenericVirtualPackage, MatchSpec, PackageName, PackageRecord, Platform,
     RepoDataRecord,
 };
-use rattler_solve::{libsolv_c::Solver, SolverImpl, SolverTask};
+use rattler_solve::{libsolv_c, resolvo, SolverImpl, SolverTask};
 
 use std::str::FromStr;
 use std::sync::Arc;
@@ -27,14 +27,15 @@ use std::time::Duration;
 use tracing::{span, Instrument, Level};
 use tracing_subscriber::fmt::format::{format, FmtSpan};
 
-struct AppState {
+struct AppState<Solver> {
     available_packages: AvailablePackagesCache,
     concurrent_repodata_downloads_per_request: usize,
     channel_config: ChannelConfig,
+    solver: Solver,
 }
 
 /// Checks the `AvailablePackagesCache` every minute to remove outdated entries
-async fn cache_gc_task(state: Arc<AppState>) {
+async fn cache_gc_task(state: Arc<AppState<Solver>>) {
     let mut interval_timer = tokio::time::interval(Duration::from_secs(60));
     loop {
         interval_timer.tick().await;
@@ -70,17 +71,18 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn state_from_args(args: &Args) -> AppState {
+fn state_from_args(args: &Args) -> AppState<Solver> {
     let cache_expiration = Duration::from_secs(args.repodata_cache_expiration_seconds);
 
     AppState {
-        available_packages: AvailablePackagesCache::with_expiration(cache_expiration),
+        available_packages: AvailablePackagesCache::new(cache_expiration, args.cache_dir.clone()),
         concurrent_repodata_downloads_per_request: args.concurrent_repodata_downloads_per_request,
         channel_config: ChannelConfig::default(),
+        solver: args.solver,
     }
 }
 
-fn app(state: Arc<AppState>) -> Router {
+fn app(state: Arc<AppState<Solver>>) -> Router {
     Router::new()
         .route("/solve", post(solve_environment))
         .with_state(state)
@@ -88,7 +90,7 @@ fn app(state: Arc<AppState>) -> Router {
 
 #[tracing::instrument(level = "info", skip(state))]
 async fn solve_environment(
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState<Solver>>>,
     Json(payload): Json<SolveEnvironment>,
 ) -> Response {
     let result = solve_environment_inner(state, payload).await;
@@ -99,7 +101,7 @@ async fn solve_environment(
 }
 
 async fn solve_environment_inner(
-    state: Arc<AppState>,
+    state: Arc<AppState<Solver>>,
     payload: SolveEnvironment,
 ) -> Result<Vec<RepoDataRecord>, ApiError> {
     let root_span = span!(Level::TRACE, "solve_environment");
@@ -193,19 +195,18 @@ async fn solve_environment_inner(
 
     // This call will block for hundreds of milliseconds, or longer
     let result = tokio::task::spawn_blocking(move || {
-        let available_packages: Vec<_> = available_packages
-            .iter()
-            .map(|repodata| repodata.as_repo_data())
-            .collect();
         let problem = SolverTask {
-            available_packages: available_packages.into_iter(),
+            available_packages: &available_packages,
             virtual_packages,
             specs: matchspecs,
             locked_packages: Vec::new(),
             pinned_packages: Vec::new(),
         };
 
-        Solver.solve(problem)
+        match state.solver {
+            Solver::Resolvo => resolvo::Solver.solve(problem),
+            Solver::Libsolvc => libsolv_c::Solver.solve(problem),
+        }
     })
     .instrument(span!(Level::DEBUG, "solve"))
     .await
@@ -253,16 +254,21 @@ mod tests {
     use axum::body::Body;
     use axum::http;
     use axum::http::{header, Request, StatusCode};
+    use mktemp::Temp;
     use mockito::{Mock, ServerGuard};
     use reqwest::Url;
     use tower::util::ServiceExt;
 
     async fn dummy_app() -> (ServerGuard, Router) {
+        let temp_dir = Temp::new_dir().unwrap();
+        let cache_dir = temp_dir.to_path_buf();
         let mut state = state_from_args(&Args {
             concurrent_repodata_downloads_per_request: 1,
             repodata_cache_expiration_seconds: u64::MAX,
             // The port is ignored during testing
             port: 0,
+            cache_dir,
+            solver: Solver::Resolvo,
         });
 
         let mock_channel_server = mockito::Server::new_async().await;
@@ -398,7 +404,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::CONFLICT);
         let body = response_body(response).await;
         assert!(
-            body.contains("nothing provides __unix needed by bar-1.2.3"),
+            body.contains("bar * cannot be installed because there are no viable options"),
             "Unexpected body!\n{body}"
         )
     }
