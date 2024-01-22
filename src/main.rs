@@ -14,7 +14,7 @@ use axum::response::{IntoResponse, Response};
 use axum::{routing::post, Json, Router};
 use clap::Parser;
 use cli::Solver;
-use futures::{StreamExt, TryStreamExt};
+use futures::{SinkExt, StreamExt, TryStreamExt};
 use rattler_conda_types::{
     Channel, ChannelConfig, GenericVirtualPackage, MatchSpec, PackageName, PackageRecord, Platform,
     RepoDataRecord,
@@ -22,6 +22,7 @@ use rattler_conda_types::{
 use rattler_solve::{libsolv_c, resolvo, SolverImpl, SolverTask};
 
 use std::str::FromStr;
+use std::sync::mpsc::channel;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{span, Instrument, Level};
@@ -184,14 +185,25 @@ async fn solve_environment_inner(
     });
 
     // Get the available packages for each (channel, platform) combination
-    let available_packages: Vec<_> = futures::stream::iter(channels_and_platforms)
+    let available_packages = futures::stream::iter(channels_and_platforms)
         .map(|(channel, platform)| {
             let state = &state;
-            async move { state.available_packages.get(&channel, platform).await }
+            async move {
+                state
+                    .available_packages
+                    .get(&channel, platform, state.solver)
+                    .await
+            }
         })
-        .buffer_unordered(state.concurrent_repodata_downloads_per_request)
-        .try_collect()
-        .await?;
+        .buffer_unordered(state.concurrent_repodata_downloads_per_request);
+    let available_packages: Vec<Arc<available_packages_cache::RepoData>> =
+        available_packages.try_collect().await?;
+    let x = match available_packages[0].as_ref() {
+        available_packages_cache::RepoData::Libsolvc(r) => available_packages
+            .into_iter()
+            .map(|r| r.as_ref().as_repo_data()),
+        available_packages_cache::RepoData::Resolvo(r) => r,
+    };
 
     // This call will block for hundreds of milliseconds, or longer
     let result = tokio::task::spawn_blocking(move || {
