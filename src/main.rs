@@ -27,7 +27,7 @@ use std::time::Duration;
 use tracing::{span, Instrument, Level};
 use tracing_subscriber::fmt::format::{format, FmtSpan};
 
-struct AppState<Solver> {
+struct AppState {
     available_packages: AvailablePackagesCache,
     concurrent_repodata_downloads_per_request: usize,
     channel_config: ChannelConfig,
@@ -35,7 +35,7 @@ struct AppState<Solver> {
 }
 
 /// Checks the `AvailablePackagesCache` every minute to remove outdated entries
-async fn cache_gc_task(state: Arc<AppState<Solver>>) {
+async fn cache_gc_task(state: Arc<AppState>) {
     let mut interval_timer = tokio::time::interval(Duration::from_secs(60));
     loop {
         interval_timer.tick().await;
@@ -71,7 +71,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn state_from_args(args: &Args) -> AppState<Solver> {
+fn state_from_args(args: &Args) -> AppState {
     let cache_expiration = Duration::from_secs(args.repodata_cache_expiration_seconds);
 
     AppState {
@@ -82,7 +82,7 @@ fn state_from_args(args: &Args) -> AppState<Solver> {
     }
 }
 
-fn app(state: Arc<AppState<Solver>>) -> Router {
+fn app(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/solve", post(solve_environment))
         .with_state(state)
@@ -90,7 +90,7 @@ fn app(state: Arc<AppState<Solver>>) -> Router {
 
 #[tracing::instrument(level = "info", skip(state))]
 async fn solve_environment(
-    State(state): State<Arc<AppState<Solver>>>,
+    State(state): State<Arc<AppState>>,
     Json(payload): Json<SolveEnvironment>,
 ) -> Response {
     let result = solve_environment_inner(state, payload).await;
@@ -101,7 +101,7 @@ async fn solve_environment(
 }
 
 async fn solve_environment_inner(
-    state: Arc<AppState<Solver>>,
+    state: Arc<AppState>,
     payload: SolveEnvironment,
 ) -> Result<Vec<RepoDataRecord>, ApiError> {
     let root_span = span!(Level::TRACE, "solve_environment");
