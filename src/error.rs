@@ -135,6 +135,15 @@ pub fn response_from_error(api_error: ApiError) -> Response {
             }),
         )
             .into_response(),
+        ApiError::Solver(SolveError::Cancelled) => (
+            StatusCode::BAD_REQUEST,
+            Json(SolveEnvironmentErr::<String> {
+                error_kind: "validation".to_string(),
+                message: Some("solver process cancelled".to_string()),
+                additional_info: None,
+            }),
+        )
+            .into_response(),
     }
 }
 

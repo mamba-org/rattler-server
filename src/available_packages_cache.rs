@@ -1,9 +1,9 @@
 use crate::error::ApiError;
 use anyhow::Context;
 use rattler_conda_types::{Channel, Platform, RepoData, RepoDataRecord};
-use rattler_networking::AuthenticatedClient;
 use rattler_repodata_gateway::fetch;
 use reqwest::Url;
+use reqwest_middleware::ClientWithMiddleware;
 use std::sync::Arc;
 use std::time::Duration;
 use std::{default::Default, path::PathBuf};
@@ -15,7 +15,7 @@ use crate::generic_cache::{GenericCache, GetCachedResult};
 pub struct AvailablePackagesCache {
     cache: GenericCache<Url, Vec<RepoDataRecord>>,
     cache_dir: PathBuf,
-    download_client: AuthenticatedClient,
+    download_client: ClientWithMiddleware,
 }
 
 impl AvailablePackagesCache {
@@ -23,7 +23,7 @@ impl AvailablePackagesCache {
     pub fn new(expiration: Duration, cache_dir: PathBuf) -> AvailablePackagesCache {
         AvailablePackagesCache {
             cache: GenericCache::with_expiration(expiration),
-            download_client: AuthenticatedClient::default(),
+            download_client: ClientWithMiddleware::new(reqwest::Client::new(), []),
             cache_dir,
         }
     }

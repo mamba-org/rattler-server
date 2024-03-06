@@ -201,6 +201,7 @@ async fn solve_environment_inner(
             specs: matchspecs,
             locked_packages: Vec::new(),
             pinned_packages: Vec::new(),
+            timeout: Some(Duration::from_secs(20)),
         };
 
         match state.solver {
